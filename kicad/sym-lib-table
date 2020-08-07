@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name Symbols_Socket-DIN41612_RevA)(type Legacy)(uri ${KIPRJMOD}/rescue-backup/Symbols_Socket-DIN41612_RevA.lib)(options "")(descr ""))
+)
