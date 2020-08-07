@@ -1,0 +1,37 @@
+NET "PH12" BUFG=DATA_GATE;
+
+NET "A(0)"            LOC = "P32";
+NET "A(1)"            LOC = "P33";
+NET "A(2)"            LOC = "P36";
+NET "A(3)"            LOC = "P34";
+NET "A(4)"            LOC = "P39";
+NET "A(5)"            LOC = "P40";
+NET "A(6)"            LOC = "P41";
+NET "A(7)"            LOC = "P42";
+NET "clk_in"          LOC = "P43";
+NET "PH12"            LOC = "P44";
+NET "ERnW"            LOC = "P5";
+NET "MRnW"            LOC = "P8";
+
+NET "madet"           LOC = "P12";
+NET "nPGFC"           LOC = "P31";
+NET "ROMQA"           LOC = "P3";
+NET "nROMOE"          LOC = "P30";
+NET "tx_a"            LOC = "P27";
+NET "rx_a"            LOC = "P22";
+NET "tx_b"            LOC = "P20";
+NET "rx_b"            LOC = "P38";
+NET "reset_in"        LOC = "P16";     
+      
+NET "cs_uart"         LOC = "P13";
+NET "cs_rom"          LOC = "P29";
+NET "cs_pareg"        LOC = "P14";
+NET "ior"             LOC = "P6";
+NET "iow"             LOC = "P7";
+NET "clk_uart"        LOC = "P18";
+NET "reset_out"       LOC = "P2";
+NET "rx_esp"          LOC = "P37";
+NET "LED_RX_A"        LOC = "P23";
+NET "LED_TX_A"        LOC = "P28";
+NET "LED_RX_B"        LOC = "P19";
+NET "LED_TX_B"        LOC = "P21";
