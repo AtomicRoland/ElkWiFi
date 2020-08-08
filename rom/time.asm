@@ -4,6 +4,8 @@
 \ Get time and date from server
 \ Version 1.00
 
+\ Syntax:       *TIME
+\               *DATE
 
 \ Do not move this data block. It must be just before 
 \ the .date_time label!

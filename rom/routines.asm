@@ -274,3 +274,18 @@ endif
 .wifi_symbol
  equb &3E,&41,&1C,&22,&08,&14,&00,&08
 
+\ Test presense of paged ram
+\ This test is destructive for both the ram content and the A register.
+\ Returns with Z=0 for ram error.
+.test_paged_ram
+ lda #&AA                   \ load byte
+ sta pageram                \ write to memory
+ lda pageram                \ read memory
+ cmp #&AA                   \ compare with value
+ bne ram_error              \ jump of not equal
+ lda #&55                   \ load byte
+ sta pageram                \ write to memory
+ lda pageram                \ read memory
+ cmp #&55                   \ compare with value
+.ram_error
+ rts                        \ return from subroutine

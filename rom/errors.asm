@@ -33,3 +33,5 @@
 .error_bad_option           equs "Unrecognized option",&0D
 .error_bad_protocol         equs "Unsupported protocol",&0D
 .error_http_status          equs "HTTP error",&0D
+.error_no_pagedram          equs "No paged ram found",&0D
+.error_disabled             equs "Wifi is disabled",&0D

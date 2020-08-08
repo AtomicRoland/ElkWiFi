@@ -269,9 +269,7 @@
  sta laddr
  lda zp+1
  sta laddr+1
- jsr printhex
  lda laddr
- jsr printhex
 
 \ Set parameters for CIPSEND command
 .wget_send_l1

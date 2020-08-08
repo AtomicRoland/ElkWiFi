@@ -1,4 +1,7 @@
 \ JOIN and LEAVE network routines.
+
+\ Syntax:     *JOIN <ssid> [passwd]
+\             *LEAVE        
  
 .join_cmd 			        \ start command from here
  jsr skipspace1             \ forward Y pointer to first non-space character
