@@ -33,6 +33,8 @@
  sty save_y
  cmp #24                    \ check for enable/disable command
  beq wifi_init_uart         \ this is always allowed
+ cmp #&FF
+ beq drivertest
  jsr test_wifi_ena          \ test is wifi is enables (in serial.asm)
  beq wifi_init_uart         \ jump if wifi is enabled
  ldx #(error_disabled-error_table)
@@ -49,6 +51,8 @@
 .ram_ok
  jsr clear_buffer           \ initialize the receive buffer in paged ram
  lda save_a                 \ load driver function number
+ cmp #&FF                   \ driver test call
+ beq drivertest
  and #&1F                   \ calculate jump address
  asl a
  tax
@@ -58,6 +62,24 @@
  sta zp+1
  jmp (zp)                   \ execute driver function
  
+.drivertest
+ jsr printtext
+ equs "Wifi driver test call",&0D
+ equs "Registers: ", &EA
+ lda save_a
+ jsr printhex
+ lda #' '
+ jsr oswrch
+ lda save_x
+ jsr printhex
+ lda #' '
+ jsr oswrch
+ lda save_y
+ jsr printhex
+ lda #' '
+ jsr oswrch
+ jmp osnewl
+
 .entry_table
  equw init
  equw reset
