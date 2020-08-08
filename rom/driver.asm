@@ -155,15 +155,21 @@
  jmp restore_env
  
 .init \ init serial port and esp device
+ lda #2
+ sta time_out
  jsr send_command
  equs "AT+RST",&0D
  jmp read_response
  
 .reset \ reset esp8266
+ lda #2
+ sta time_out
  jsr uart_hw_reset
  jmp read_response
  
 .gmr \ get firmware version
+ lda #2
+ sta time_out
  jsr send_command
  equs "AT+GMR",&0D
  jmp read_response
