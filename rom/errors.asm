@@ -35,3 +35,4 @@
 .error_http_status          equs "HTTP error",&0D
 .error_no_pagedram          equs "No paged ram found",&0D
 .error_disabled             equs "Wifi is disabled",&0D
+.error_opencon              equs "Connection error",&0D

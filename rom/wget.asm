@@ -1,7 +1,8 @@
 \ WGET command
-\ Syntax:    *WGET [-T] [-A] <url> [address]
+\ Syntax:    *WGET [-T] [-A] [-P] <url> [address]
 \ Option:    -T        optional    print the downloaded file directly on the screen
 \            -A        optional    the file has an ATM header
+\            -P        optional    the file has an Atom-in-PC header
 \            url       required    the url of the file, including http(s)://
 \            address   optional    load address of the file
 \ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters since that option
@@ -9,11 +10,12 @@
 \ 
 \ (c) Roland Leurs, July 2020
 
-                newln = heap + &F8      \ 1 byte
-                clptr = heap + &F9      \ 1 byte
-                index = heap + &FA      \ 1 byte
-                tflag = heap + &FB      \ 1 byte
-                aflag = heap + &FC      \ 1 byte
+                newln = heap + &F7      \ 1 byte
+                clptr = heap + &F8      \ 1 byte
+                index = heap + &F9      \ 1 byte
+                tflag = heap + &FA      \ 1 byte
+                aflag = heap + &FB      \ 1 byte
+                pflag = heap + &FC      \ 1 byte
                 proto = heap + &FD      \ 1 byte
                 laddr = heap + &FE      \ 2 bytes
 
@@ -21,6 +23,7 @@
  lda #0                     \ initialize flags and address
  sta tflag
  sta aflag
+ sta pflag
  sta proto                  \ default no ssl (i.e. http)
  sta laddr
  sta laddr+1
@@ -33,7 +36,7 @@
  cpx #&00                   \ test if any parameter given, x will be > 0
  bne wget_read_params       \ continue if one parameter is on the command line
  jsr printtext              \ no parameter, print a message
- equs "Usage: WGET [-T] [-A] <url> [address]",&0D,&EA
+ equs "Usage: WGET [-T] [-A] [-P] <url> [address]",&0D,&EA
  jmp call_claimed           \ end of command
 
 .wget_read_params
@@ -48,6 +51,8 @@
  beq wget_option_a          \ jump if A
  cmp #'u'                   \ check for U (unix text file)
  beq wget_option_u          \ jump if U
+ cmp #'p'                   \ check for P (Atom-in-PC header)
+ beq wget_option_p          \ jump if P
  ldx #(error_bad_option-error_table)
  jmp error                  \ unrecognized option, throw an error
 
@@ -61,8 +66,12 @@
 
 .wget_option_a
  lda #1                     \ set flag to 1
- sta aflag
  sta aflag 
+ bne wget_l1                \ jump always
+
+.wget_option_p
+ lda #1                     \ set flag to 1
+ sta pflag
  bne wget_l1                \ jump always
 
 .wget_read_uri              \ the parameter is not an option switch, treat it like a url
@@ -189,11 +198,23 @@
 .wget_open_l1
  ldx #>heap                 \ load heap address into registers x and y
  ldy #<heap
- lda #8                     \ set time out
+ lda #16                    \ set time out, quite large because DNS time out error may take some time
  sta time_out
  lda #8                     \ send "open" command 
  jsr wifidriver
+ lda pageram+&B             \ check for OK response (Normal response is: CONNECT crlf crlf OK crlf crlf)
+ cmp #'O'
+ bne wget_open_err          \ It's not OK, so throw an error
+ lda pageram+&C             \ check second character, just to be sure
+ cmp #'K'
+ beq wget_build_get         \ It's OK, continue
+.wget_open_err
+ jsr reset_buffer           \ reset buffer pointer to print error message from device
+ jsr print_string           \ print error string
+ ldx #(error_opencon-error_table)
+ jmp error
 
+.wget_build_get
 \ Build the GET command
  ldy #0                     \ reset pointer to heap
  ldx #0                     \ reset index
@@ -283,6 +304,8 @@
  lda #&00
  sta &03,x
  sta &04,x
+ lda #4                     \ set shorter time out
+ sta time_out
  lda #13                    \ load driver command
  jsr wifidriver             \ send the header
 
@@ -295,9 +318,17 @@
  jsr wget_http_status       \ check for HTTP statuscode 200
  jsr wget_search_crlf       \ search for newline
 
- lda aflag                  \ test if file has ATM header
- beq wget_set_load_addr     \ skip reading the header if no ATM header (aflag = 0)
+ \ Check the header flags -A (ATM) and -P (Atom-in-PC or APC); the first has presendence when both are given.
+ lda aflag                  \ test if ATM header option given
+ bne wget_atm_header        \ jump if there's no -A flag
+ lda pflag                  \ test if APC header option given
+ beq wget_set_load_addr     \ skip reading the header if no APC header (pflag = 0)
+ jsr wget_read_apc_header   \ read the APC header
+ jmp wget_set_load_addr     \ jump always
+
+.wget_atm_header
  jsr wget_read_atm_header   \ read the ATM header
+
 .wget_set_load_addr
  lda laddr                  \ check if there is a load address by now
  ora laddr+1
@@ -460,6 +491,25 @@
 .hdr2
  rts                        \ return from subroutine
 
+.wget_read_apc_header
+ ldy #16                    \ load header length
+.hdr3
+ jsr dec_blocksize          \ decrement block size
+ jsr read_buffer            \ read byte from input buffer
+ sta heap,y                 \ write to workspace
+ dey                        \ decrement pointer
+ bpl hdr3                   \ jump if more bytes follow
+ lda laddr                  \ test if there was an address on the command line
+ ora laddr+1                \ that has presedence over the APC load address
+ bne hdr4                   \ jump if load address was specified
+ lda heap+16                \ set load address from heap
+ sta laddr                  \ please mind that the APC header is read backwards so
+ lda heap+15                \ low nibble is in a higher address than 
+ sta laddr+1                \ the high nibble
+.hdr4
+ rts                        \ return from subroutine
+
+
 \ READ HTTP DATA UNTIL blocksize IS 0
 \ DATA IS WRITTEN TO LOAD ADDRESS
 .wget_read_http_data
@@ -549,9 +599,10 @@ endif
  rts
 
 .wget_http_status
- jsr wget_test_end_of_data  \ Read next character
- bcc wget_http_status_end   \ as long as there is data
- jsr read_buffer            \ read the next byte
+ jsr wget_test_end_of_data  \ Read next character...
+ bcc wget_http_status_end   \ ... as long as there is data
+ jsr dec_blocksize
+ jsr read_buffer            \ ... read the next byte
  cmp #' '                   \ check for space
  bne wget_http_status
  stx index                  \ save the buffer pointer
