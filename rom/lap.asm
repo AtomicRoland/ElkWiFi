@@ -4,6 +4,7 @@
 \ Get a list of access points. This is a very basic version.....
 \ Version 1.00
 
+\ Syntax:       *LAP
 
 .lap_cmd
  lda #8                     \ set time-out

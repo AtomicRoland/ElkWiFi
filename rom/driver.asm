@@ -26,20 +26,37 @@
  \ 25 cwlapopt
  \ 26 sslbufsize
 
- sta save_a
+
+
+ sta save_a                 \ save registers
  stx save_x
  sty save_y
- jsr clear_buffer
- lda save_a
- and #&1F
+ cmp #24                    \ check for enable/disable command
+ beq wifi_init_uart         \ this is always allowed
+ jsr test_wifi_ena          \ test is wifi is enables (in serial.asm)
+ beq wifi_init_uart         \ jump if wifi is enabled
+ ldx #(error_disabled-error_table)
+ jmp error                  \ throw page ram error
+.wifi_init_uart
+ jsr init_uart              \ initialize the uart
+ jsr send_command           \ send ECHO OFF to ESP device
+ equs "ATE0",&0D
+ jsr read_response          \ wait for echo off to complete
+ jsr test_paged_ram         \ check for paged ram
+ beq ram_ok                 \ jump if ram found
+ ldx #(error_no_pagedram-error_table)
+ jmp error                  \ throw page ram error
+.ram_ok
+ jsr clear_buffer           \ initialize the receive buffer in paged ram
+ lda save_a                 \ load driver function number
+ and #&1F                   \ calculate jump address
  asl a
  tax
  lda entry_table,x
  sta zp
  lda entry_table+1,x
  sta zp+1
- jsr init_uart
- jmp (zp)
+ jmp (zp)                   \ execute driver function
  
 .entry_table
  equw init
@@ -355,7 +372,7 @@
  jsr send_command
  equs "AT+CSYSWDTDISABLE",&0D
  jmp read_response
- 
+
 .reserved
 .not_implemented
  lda nomon

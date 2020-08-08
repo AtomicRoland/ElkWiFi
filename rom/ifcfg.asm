@@ -4,6 +4,7 @@
 \ Get interface configuration. This is a very basic version.....
 \ Version 1.00
 
+\ Syntax:       *IFCFG
 
 .ifcfg_cmd
  lda #2                     \ set time out

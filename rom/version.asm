@@ -4,6 +4,8 @@
 \ Get ESP8266 firmware version
 \ Version 1.00
 
+\ Syntax:       *VERSION
+
 .version_cmd
   lda #2            \ set timeout to short value
   sta time_out
@@ -14,8 +16,8 @@
   jsr reset_buffer
   lda pageram
   beq no_device
-.version_l1
-  jsr search0a      \ skips the first string, this is generally the given command
+; .version_l1
+;  jsr search0a      \ skips the first string, this is generally the given command
 .version_l2
   jsr read_buffer
   jsr oswrch

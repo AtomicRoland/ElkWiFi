@@ -4,6 +4,7 @@
 \ Wifi command
 \ Version 1.00
 
+\ Syntax: *WIFI [ON | OFF | SR | HR]
 
 .wifi_cmd       lda (line),y                \ load current character in command line
                 cmp #&0D                    \ test if no paramaters given
