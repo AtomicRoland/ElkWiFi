@@ -38,7 +38,10 @@ include "electron.asm"
                     cmp #1                      \ is reason an autoboot call?
                     bne notboot                 \ if not then goto not boot
                     jmp autorun                 \ go to autorun (initialize)
-.notboot            rts                         \ other reason, not for me, carry on
+.notboot            cmp #8                      \ unknown OSWORD call
+                    bne notosword               \ if not then goto not osword
+                    jmp osword65                \ jump to OSWORD handler
+.notosword          rts                         \ other reason, not for me, carry on
 
 \ This routine searches the service roms command table for the command on the command line. The
 \ command may be abbreviated with a dot. If the command is not in the table then this routine
@@ -204,7 +207,34 @@ include "electron.asm"
                     equs " WGET      Get a file from a webserver",&0D
                     equs " WIFI      WiFi controle ON|OFF|HR|SR",&0D
                     nop
-                    rts 
+.print_help_end     rts 
+
+\ OSWORD &65 is a direct call to the WIFI driver so user applications can use
+\ the driver as well. OSWORD is always called with the call number at &EF and
+\ the X and Y registers in &F0 and &F1. The X and Y should point to an address
+\ where the parameters are stored.
+\ All the registers might be modified after OSWORD &65 is called.
+.osword65           lda &EF                     \ load OSWORD number
+                    cmp #&65                    \ compare with &65
+                    beq osword65_l1             \ jump if it's my call
+                    lda #8                      \ it is not mine, so continu with unmodified A
+                    rts
+.osword65_l1        tya                         \ save X and Y registers, we don't save the A because
+                    pha                         \ the exit value of A depends on the command.
+                    txa
+                    pha
+                    ldy #0                      \ reset the index register
+                    lda (&F0),y                 \ load the A value
+                    pha                         \ save on stack
+                    iny                         \ increment index
+                    lda (&F0),y                 \ load the X value
+                    tax                         \ transfer to X register
+                    iny                         \ increment index
+                    lda (&F0),y                 \ load the Y value
+                    tay                         \ transfer to Y register
+                    pla                         \ restore A (= function number)
+                    jsr wifidriver              \ execute the wifi function
+                    jmp call_claimed            \ return from OSWORD call
 
 include "routines.asm"
 include "errors.asm"
