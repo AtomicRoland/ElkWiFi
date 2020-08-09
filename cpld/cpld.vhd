@@ -70,7 +70,7 @@ architecture Behavioral of cpld is
    signal trigger_rx_b : STD_LOGIC := '0';
    signal trigger_tx_a : STD_LOGIC := '0';
    signal trigger_tx_b : STD_LOGIC := '0';
-
+   signal wifi_disable : STD_LOGIC := '0';
 
 begin
    -- Clock divider
@@ -95,11 +95,12 @@ begin
    end process;
    
    -- Chip Control logic
-   process(nPGFC, A, PH12, ERnW, MRnW, madet, nROMOE, ROMQA, reset_in)
+   process(nPGFC, A, PH12, ERnW, MRnW, madet, nROMOE, ROMQA, reset_in, wifi_disable)
    begin 
       -- Platform independant control logic
-      -- Enable UART at &FCFx
-      if nPGFC = '0' and A(7 downto 4) = "1111" then
+      -- Enable UART at &FC3x
+      -- and &FCFF (paged ram register)
+      if nPGFC = '0' and (A(7 downto 4) = "0011" or A(7 downto 0) = "11111111") then
          cs_uart <= '0';
       else 
          cs_uart <= '1';
@@ -111,7 +112,12 @@ begin
          cs_rom <= '1';
       end if;
       -- Inverted reset for the UART
-      reset_out <= not reset_in;
+      -- but only when wifi is not disabled
+      if wifi_disable = '0' then
+         reset_out <= not reset_in;
+      else 
+         reset_out <= '0';
+      end if;
       
       -- Platform dependant control logic
       if madet = '1' then -- Electron control logic
@@ -132,6 +138,13 @@ begin
          else
             IOW <= '1';
          end if;
+         -- Set/reset wifi_disable by writing to the LSR-B (&FC35) and 
+         -- MSR-B (&FC36) registers
+         if rising_edge(ph12) then
+            if nPGFC = '0' and (A(7 downto 1) = "0011010" or A(7 downto 1) = "0011011") and ERnW = '0' then
+               wifi_disable <= A(0);
+            end if;
+         end if;
       else  -- BBC Master control logic
          if nPGFC = '0' and A(7 downto 0) = "11111111" and MRnW = '0' then
             cs_pareg <= '0';
@@ -148,6 +161,13 @@ begin
             IOW <= '0';
          else
             IOW <= '1';
+         end if;
+         -- Set/reset wifi_disable by writing to the LSR-B (&FC35) and 
+         -- MSR-B (&FC36) registers
+         if rising_edge(ph12) then
+            if nPGFC = '0' and (A(7 downto 1) = "0011010" or A(7 downto 1) = "0011011") and MRnW = '0' then
+               wifi_disable <= A(0);
+            end if;
          end if;
       end if;
    end process;
