@@ -27,8 +27,6 @@
                 cmp #'R'                    \ check if second letter is an R                
                 bne wifi_badcmd             \ No it's not, go print help info
                 txa                         \ transfer driver command to A
-                ldx #2                      \ set time out 
-                stx time_out
                 jsr wifidriver              \ perform the action
                 jmp call_claimed            \ end of command
 

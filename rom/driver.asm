@@ -41,6 +41,8 @@
  jmp error                  \ throw page ram error
 .wifi_init_uart
  jsr init_uart              \ initialize the uart
+ lda #2                     \ set default time-out
+ sta time_out
  jsr send_command           \ send ECHO OFF to ESP device
  equs "ATE0",&0D
  jsr read_response          \ wait for echo off to complete
@@ -155,26 +157,22 @@
  jmp restore_env
  
 .init \ init serial port and esp device
- lda #2
- sta time_out
  jsr send_command
  equs "AT+RST",&0D
  jmp read_response
  
 .reset \ reset esp8266
- lda #2
- sta time_out
  jsr uart_hw_reset
  jmp read_response
  
 .gmr \ get firmware version
- lda #2
- sta time_out
  jsr send_command
  equs "AT+GMR",&0D
  jmp read_response
  
 .cwlap \ list access points
+ lda #8                 \ set time out
+ sta time_out
  jsr send_command
  equs "AT+CWLAP",&0D
  jmp read_response
@@ -193,6 +191,8 @@
   
 .cwjap \ join access point
  \ x = hi byte param block, y=low byte param block
+ lda #8                 \ set time out
+ sta time_out
  jsr send_command
  equs "AT+CWJAP",&00
  ldy #0
@@ -235,6 +235,8 @@
  
 .cipstart \ set up tcp or udp connection
  \ x = hi byte param block, y=low byte param block
+ lda #16                    \ set long time out since DNS might take a while to time out
+ sta time_out
  jsr send_command
  equs "AT+CIPSTART",&00
  ldy #0
@@ -293,8 +295,6 @@
  rts
  
 .mux_get_channel
- lda #&00
- sta error_nr
  jsr restore_env
  lda mux_status
  beq no_mux
@@ -356,6 +356,10 @@
  .smb2
  jsr dec_data_counter
  bne smb1
+ lda #4                 \ set time out
+ sta time_out
+ jsr read_response
+ jsr read_response
  jmp read_response
  
 .cipclose \ close tcp/ip connection
@@ -403,25 +407,12 @@
 
 .reserved
 .not_implemented
- lda nomon
- bne error2
  ldx #(error_not_implemented-error_table)
  jmp error
-.error2
- lda #2
- sta error_nr
- rts
  
 .buffer_full
- lda nomon
- bne error4
  ldx #(error_buffer_full-error_table)
  jmp error
-.error4
- lda #4
- sta error_nr
- rts
- 
 
 \ Initialize the data buffer, by resetting the paged ram register to 0. This
 \ call does not clear the buffer and will mostly be called after a command

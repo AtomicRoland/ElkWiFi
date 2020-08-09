@@ -7,8 +7,6 @@
 \ Syntax:       *LAP
 
 .lap_cmd
- lda #8                     \ set time-out
- sta time_out
  lda #3                     \ Load driver call number
  jmp generic_cmd            \ And it's technically nothing else than a version command :-)
 
@@ -31,8 +29,6 @@
  ldx #0                     \ reset heap pointer
  jsr copy_to_heap           \ copy parameter to head (parameter block)
 .do_lapopt
- lda #2                     \ set time-out
- sta time_out
  ldx #>heap                 \ load pointer to parameter block
  ldy #<heap
  lda #25                    \ Load driver call number

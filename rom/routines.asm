@@ -258,6 +258,8 @@ endif
  
 \ Print the Acorn Electron logo
 if __ELECTRON__
+ jsr test_wifi_ena          \ test wifi enabled status
+ beq logo2                  \ jump if wifi is disabled
 .print_logo
  ldx #7                     \ load index for copy
 .logo1
@@ -265,8 +267,8 @@ if __ELECTRON__
  sta &60A0,x                \ write to screen
  dex                        \ decrement index
  bpl logo1                  \ jump if bytes follow
- lda #7                     \ sound beep
- jmp oswrch                 \ end of routine
+.logo2
+ rts                        \ end of routine
 else
  rts
 endif

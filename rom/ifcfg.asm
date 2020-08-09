@@ -7,7 +7,5 @@
 \ Syntax:       *IFCFG
 
 .ifcfg_cmd
- lda #2                     \ set time out
- sta time_out
  lda #18                    \ Load driver call number
  jmp generic_cmd            \ And it's technically nothing else than a version command :-)

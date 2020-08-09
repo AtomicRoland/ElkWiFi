@@ -38,8 +38,6 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  sta data_counter+3
  lda #0
  sta data_counter+4
- lda #&02                       \ set time-out 
- sta time_out
  ldx #data_counter              \ load index to parameters
  lda #13                        \ send http get command
  jmp wifidriver

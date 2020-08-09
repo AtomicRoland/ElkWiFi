@@ -190,16 +190,12 @@
 .wget_open_connection
  lda proto                  \ load protocol
  beq wget_open_l1           \ jump if tcp
- lda #2                     \ set time out
- sta time_out
  lda #26                    \ load Wifi command
  jsr wifidriver             \ Init SSL Buffer
 
 .wget_open_l1
  ldx #>heap                 \ load heap address into registers x and y
  ldy #<heap
- lda #16                    \ set time out, quite large because DNS time out error may take some time
- sta time_out
  lda #8                     \ send "open" command 
  jsr wifidriver
  lda pageram+&B             \ check for OK response (Normal response is: CONNECT crlf crlf OK crlf crlf)
@@ -304,8 +300,6 @@
  lda #&00
  sta &03,x
  sta &04,x
- lda #4                     \ set shorter time out
- sta time_out
  lda #13                    \ load driver command
  jsr wifidriver             \ send the header
 
@@ -358,8 +352,6 @@
  
 \ Close connection
 .wget_close
- lda #2                     \ set short time out
- sta time_out             
  lda #14                    \ load close command code
  jsr wifidriver             \ close connection to server
  jmp call_claimed           \ end of command

@@ -26,8 +26,6 @@
 .set_mode
  ldx #>heap                 \ load address of parameter block
  ldy #<heap                   
- lda #2                     \ set time out
- sta time_out
  lda #&07                   \ load driver command
  jmp generic_cmd            \ execute the command
 
