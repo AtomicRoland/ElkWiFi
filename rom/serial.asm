@@ -52,31 +52,6 @@ bank_save = save_a
  sta uart_thr
  rts
  
-\ Read a byte from the ESP8266 module
-\ If a byte is received, the C-flag is 1 and A holds the received character
-\ If no byte is received (a timeout occurred) the C-flag is 0 and A is undefined.
-.read_byte
- lda time_out  \ time-out parameter
- sta timer
- sta timer+1
- sta timer+2
-.rb1
- lda uart_lsr
- and #&01
- bne rb3
- dec timer
- bne rb1
- dec timer+1
- bne rb1
- dec timer+2
- bne rb1
- clc \ time out, no data received
- rts
-.rb3
- lda uart_rhr
- sec \ data received
- rts
- 
 \ Disable ESP8266 module
 \ This call is in the serial driver because the board uses DTR to enable (H) or
 \ disable (L) the module.
@@ -119,35 +94,52 @@ bank_save = save_a
 \ Read response from device
 \ This routine does not use subroutines to avoid the Electron ULA
 \ stopping the CPU in mode 0 - 3.
+
+\ To avoid unnecessary waiting this routine first waits for the initial respons with
+\ a long time-out and after the data stream has started it will wait with a short 
+\ time-out.
 .uart_read_response
- ldx #0             \ reset buffer pointer
+ ldx #0                     \ reset buffer pointer
  stx pagereg
-.uart_read_response_l1
- ldy time_out       \ setup time-out timer
- sty timer
- sty timer+1
-.uart_rb1
- lda uart_lsr
+ ldy time_out               \ initialize timer
+ sty timer                  \ the timer addresses must not be in the Electron's main
+ sty timer+1                \ memory. So I picked the last bytes of the paged RAM since
+ sty timer+2                \ this timer will only be used before the data transfer starts.
+.uart_wait_for_data
+ lda uart_lsr               \ test data present
  and #&01
- bne uart_rb3
- dey                \ decrement timer
- bne uart_rb1
- dec timer
- bne uart_rb1
+ bne uart_read_start        \ jump if data received
+ 
+\ Decrement long timer
+ dec timer                  \ decrement timer
+ bne uart_wait_for_data
  dec timer+1
- bne uart_rb1       \ if not expired wait another cyclus
- beq uart_end_read  \ timer expired, no (more) data received, goto end of routine
-.uart_rb3
- lda uart_rhr       \ read received data
- sta pageram,x      \ store in memory
- inx                \ increment memory pointer
- bne uart_read_response_l1
- inc pagereg
- bne uart_read_response_l1
-.uart_end_read
- lda #&00
- sta error_nr
- rts                \ end routine
+ bne uart_wait_for_data     \ if not expired wait another cyclus
+ dec timer+2
+ bne uart_wait_for_data     \ if not expired wait another cyclus
+ rts                        \ no data received, end routine
+
+\ Data stream has started. The time-out is here counted by the Y register. The next byte should arrive
+\ after 80 microseconds. This loop will be long enough to cover this time about 40 times.
+.uart_read_start
+ ldy #0                     \ load (very) short timer
+ lda uart_rhr               \ read received data
+ sta pageram,x              \ store in memory
+ inx                        \ increment memory pointer
+ bne uart_read_l1
+ inc pagereg                \ increment page register
+ bne uart_read_l1           \ jump if not end of ram reached
+ jmp buffer_full            \ throw error
+.uart_read_l1       
+ dey                        \ decrement short timer 
+ beq uart_read_end          \ jump if transfer has ended
+ lda uart_lsr               \ load status byte
+ and #&01                   \ test if data received
+ bne uart_read_start        \ read byte if received
+ beq uart_read_l1           \ else decrement timer
+.uart_read_end
+ rts                        \ end of routine
+
 
 \ Save bank number
 \ Saves the current 64K bank number of the paged RAM

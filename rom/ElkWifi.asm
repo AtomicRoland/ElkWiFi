@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.07"                 \ Rom version string
+.romversion         equs "0.08"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2020 Roland Leurs"
                     equb 0
@@ -140,8 +140,10 @@ include "electron.asm"
                     jsr osbyte
                     cpx #0                      \ test for soft reset
                     beq autorun_l1
-                    jsr print_logo
-.autorun_l1         jsr printtext               \ perform new line
+                    lda #7                      \ ring the bell on power on and hard reset
+                    jsr oswrch
+.autorun_l1         jsr print_logo              \ print the logo if wifi is enabled
+                    jsr printtext               \ perform new line
                     equb &D,&D,&EA
                     pla                         \ restore registers
                     tax

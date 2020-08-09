@@ -58,14 +58,10 @@
 .join_network
  ldx #>heap                 \ load address of parameter block
  ldy #<heap                   
- lda #8                     \ set time out
- sta time_out
  lda #&04                   \ load driver command
  jmp generic_cmd            \ execute the command
 
 .leave_cmd
- lda #2                     \ set time out
- sta time_out
  lda #&05                   \ load driver command
  jmp generic_cmd            \ execute the command
 
