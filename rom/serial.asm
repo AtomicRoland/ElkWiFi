@@ -99,6 +99,7 @@ bank_save = save_a
 \ a long time-out and after the data stream has started it will wait with a short 
 \ time-out.
 .uart_read_response
+ sei                        \ disable interrupts
  ldx #0                     \ reset buffer pointer
  stx pagereg
  ldy time_out               \ initialize timer
@@ -117,6 +118,7 @@ bank_save = save_a
  bne uart_wait_for_data     \ if not expired wait another cyclus
  dec timer+2
  bne uart_wait_for_data     \ if not expired wait another cyclus
+ cli                        \ enable interrupts
  rts                        \ no data received, end routine
 
 \ Data stream has started. The time-out is here counted by the Y register. The next byte should arrive
@@ -138,6 +140,7 @@ bank_save = save_a
  bne uart_read_start        \ read byte if received
  beq uart_read_l1           \ else decrement timer
 .uart_read_end
+ cli                        \ enable interrupts
  rts                        \ end of routine
 
 
