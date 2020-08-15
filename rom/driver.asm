@@ -33,8 +33,8 @@
  sty save_y
  cmp #24                    \ check for enable/disable command
  beq wifi_init_uart         \ this is always allowed
- cmp #&FF
- beq drivertest
+ cmp #&FE
+ beq flash
  jsr test_wifi_ena          \ test is wifi is enables (in serial.asm)
  beq wifi_init_uart         \ jump if wifi is enabled
  ldx #(error_disabled-error_table)
@@ -53,8 +53,6 @@
 .ram_ok
  jsr clear_buffer           \ initialize the receive buffer in paged ram
  lda save_a                 \ load driver function number
- cmp #&FF                   \ driver test call
- beq drivertest
  and #&1F                   \ calculate jump address
  asl a
  tax
@@ -64,23 +62,10 @@
  sta zp+1
  jmp (zp)                   \ execute driver function
  
-.drivertest
+.flash
  jsr printtext
- equs "Wifi driver test call",&0D
- equs "Registers: ", &EA
- lda save_a
- jsr printhex
- lda #' '
- jsr oswrch
- lda save_x
- jsr printhex
- lda #' '
- jsr oswrch
- lda save_y
- jsr printhex
- lda #' '
- jsr oswrch
- jmp osnewl
+ equs "ElkWiFi rom flash utility",&0D,&EA
+ jmp do_flash
 
 .entry_table
  equw init
@@ -638,4 +623,32 @@ rts
  jsr send_command
  equs "AT+CIPSSLSIZE=4096",&0D
  jmp read_response
+
+\ Perform flash
+.do_flash
+ ldx #2                 \ set number of pages to copy
+ lda #<flashsrc         \ set source address in zero page
+ sta zp
+ lda #>flashsrc
+ sta zp+1
+ lda #<flashcode        \ set destination address in zero page
+ sta zp+6
+ lda #>flashcode
+ sta zp+7
+.do_flash1
+ ldy #0                 \ reset pointer
+.do_flash2
+ lda (zp),y             \ load source data
+ sta (zp+6),y           \ write to destination
+ iny                    \ increment pointer
+ bne do_flash2          \ jump if more bytes follow in this block
+ dex                    \ decrement number of pages to copy
+ beq do_flash3          \ jump if there are no more pages
+ inc zp+1               \ decrement the msb of the source pointer
+ inc zp+7               \ decrement the msb of the destination pointer
+ jmp do_flash1          \ copy the next block
+.do_flash3
+ ldx save_x             \ restore bank number to flash
+ ldy save_y             \ restore start address of data
+ jmp flashcode          \ start flashing
 

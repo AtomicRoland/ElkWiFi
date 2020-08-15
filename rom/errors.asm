@@ -29,6 +29,7 @@
 .error_buffer_full          equs "Buffer full",&0D
 .error_buffer_empty         equs "Buffer empty",&0D
 .error_no_date_time         equs "No date/time received",&0D
+.error_no_version           equs "No version received",&0D
 .error_not_implemented      equs "Not implemented",&0D
 .error_bad_option           equs "Unrecognized option",&0D
 .error_bad_protocol         equs "Unsupported protocol",&0D

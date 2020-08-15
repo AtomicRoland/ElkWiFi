@@ -15,8 +15,9 @@
 			time_out = timer + 4    \ Time-out setting, 1 byte
 
             errorspace = &100       \ Some volatile memory area for generating error messages
-            heap    = &900          \ Some volatile memory area for tempory storage
-			strbuf  = &A00          \ Some volatile memory area for string buffer
+            heap      = &900        \ Some volatile memory area for tempory storage
+			strbuf    = &A00        \ Some volatile memory area for string buffer
+            flashcode = &900        \ may overlap with heap and string buffer
 
             osrdch = &FFE0
             oswrch = &FFEE

@@ -178,7 +178,10 @@ include "electron.asm"
                     equb >leave_cmd, <leave_cmd
                     equs "MODE"
                     equb >mode_cmd, <mode_cmd
+                    equs "UPDATE"
+                    equb >update_cmd, <update_cmd
                     equb >command_x6, <command_x6
+                    
 
 \ This routine prints the version and title string for the *HELP command
 .help_version       ldx #0                      \ load pointer
@@ -251,10 +254,15 @@ include "pdump.asm"
 include "join.asm"
 include "mode.asm"
 include "wget.asm"
+include "update.asm"
 
 equs "This is the end!"
 
-skipto &A000
+align &100  
+.flashsrc
+incbin "flash.bin"
+
+skipto &C000
 .romend             
 
 SAVE "elkwifi.rom", atmheader, romend
