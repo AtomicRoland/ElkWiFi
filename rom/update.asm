@@ -67,7 +67,7 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  jmp wifidriver
 
 .update_cmd                     \ Time command
-\     jmp update_crc_check    \ just go to the flash routine for development
+ \    jmp update_crc_check    \ just go to the flash routine for development
  jsr checkupdate                \ Get latest version number
  \ process the response from server
  jsr reset_buffer               \ reset buffer register and pointer
@@ -141,11 +141,7 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
 
 .update_crc_check           \ Do a crc check here!
  lda #&FE                   \ load driver function number
- ldx #2                     \ load rom bank number in EEPROM
-
-; TEST/DEVELOPMENT SETTINGS
- ldx #3    \ but reprogram bank 3
-
+ ldx #&03                   \ load rom bank number in EEPROM
  ldy #&20                   \ load start address of new code
  jmp wifidriver             \ jump to the flash code; we won't come back here....
 
