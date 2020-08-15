@@ -17,7 +17,8 @@
 
 \ Workspace
 include "electron.asm"
-banktable = zp+8                \ 8 bytes
+mfatable  = zp+8                \ 4 bytes
+banktable = zp+12               \ 4 bytes
 src       = zp+16               \ 2 bytes
 dst       = zp+18               \ 2 bytes
 
@@ -49,19 +50,20 @@ uart_mcr = uart+12
 
 \ First build a table with values for the MBA bit and bank numbers
             lda #&08            \ MFA bit set for bank 0 and bank 1
-            sta banktable
-            sta banktable+2
+            sta mfatable
+            sta mfatable+1
             lda #&00            \ MFA bit cleared for bank 2 and bank 3
-            sta banktable+4
-            sta banktable+6
-            ldy &F4             \ load current paged rom number
-ldy #0 ; for testing and debugging
-            sty banktable+1
-            sty banktable+5
+            sta mfatable+2
+            sta mfatable+3
+            lda &F4             \ load current paged rom number
+            and #&06            \ clear lowest bit
+            tay
+            sty banktable
+            sty banktable+2
             iny                 \ clear carry for adding
+            sty banktable+1
             sty banktable+3
-            sty banktable+7
-
+ 
 \ Blank the bank (bank number is in X register)
             lda #'E'            \ print the E(rase)
             jsr print
@@ -111,7 +113,19 @@ ldy #0 ; for testing and debugging
 
 
 \ End of routine
-.reset      jmp (&FFFC)         \ Reboot the Electron (is there a more elegant way?)            
+.reset      LDA #&40
+            STA &0D00
+            SEI
+            CLD
+            LDX #&FF
+            TXS
+            INX
+            STX &FE00
+            STX &028D
+            LDA #&F8
+            STA &FE05
+            LDA #&02
+            JMP &D8EB 
             
 \ Prepare the erase operation for a sector in bank X. After returning from this subroutine
 \ immediatly write to the sector address.
@@ -161,10 +175,12 @@ ldy #0 ; for testing and debugging
 
 \ Select the active bank for writing a byte to. The bank number is in the X register
 .setbank    pha                 \ save A (it contains the byte that should be written)
-            lda banktable,x     \ load MFA value
+            lda mfatable,x      \ load MFA value
             sta uart_mcr        \ write to UART (this sets A15 of the EEPROM)
-            lda banktable+1,x   \ load sideway bank number
-            sta &FC05           \ write to ULA
+            lda #&0F
+            sta &FE05
+            lda banktable,x     \ load sideway bank number
+            sta &FE05           \ write to ULA
             pla                 \ restore A
             rts                 \ return to calling routine
 

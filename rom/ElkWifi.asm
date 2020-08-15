@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.08"                 \ Rom version string
+.romversion         equs "0.12"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2020 Roland Leurs"
                     equb 0
@@ -208,6 +208,7 @@ include "electron.asm"
                     equs " MODE      Set device mode",&0D
                     equs " PRD       Paged Ram Dump",&0D
                     equs " TIME      Print current time",&0D
+                    equs " UPDATE    Install ElkWifi ROM update",&0D
                     equs " VERSION   Print firmware version",&0D
                     equs " WGET      Get a file from a webserver",&0D
                     equs " WIFI      WiFi controle ON|OFF|HR|SR",&0D
