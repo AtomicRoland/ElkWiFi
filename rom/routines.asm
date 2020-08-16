@@ -291,3 +291,62 @@ endif
  cmp #&55                   \ compare with value
 .ram_error
  rts                        \ return from subroutine
+
+\ Calculate CRC16
+\ Copied from: http://mdfs.net/Info/Comp/Comms/CRC16.htm
+
+.crc_cmd                    \ temporary for development, testing and debugging.
+ jsr crc16
+ lda crc+1
+ jsr printhex
+ lda crc
+ jsr printhex
+ jsr osnewl
+ jmp call_claimed
+ 
+ 
+.crc16
+\ Set start address of data
+ lda #&00                       :\ Data block starts at &2000
+ sta data_pointer
+ lda #&20
+ sta data_pointer+1
+\ Set data length
+ lda #&00                       :\ Data length is 16k
+ sta datalen
+ lda #&40
+ sta datalen+1
+\ Initialize crc
+ lda #&00
+ sta crc
+ sta crc+1
+
+.bytelp
+ LDX #8                         :\ Prepare to rotate CRC 8 bits
+ LDA (data_pointer-8 AND &FF,X) :\ Fetch byte from memory
+
+\ The following code updates the CRC with the byte in A ---------+
+ EOR crc+1                      :\ EOR byte into CRC top byte    |
+.rotlp                          :\                               |
+ ASL crc+0:ROL A                :\ Rotate CRC clearing bit 0     |
+ BCC clear                      :\ b15 was clear, skip past      |
+ TAY                            :\ Hold CRC high byte in Y       |
+ LDA crc+0:EOR #&21:STA crc+0   :\ CRC=CRC EOR &1021, XMODEM polynomic
+ TYA:EOR #&10                   :\ Get CRC high byte back from Y |
+.clear                          :\ b15 was zero                  |
+ DEX:BNE rotlp                  :\ Loop for 8 bits               |
+ STA crc+1                      :\ Store CRC high byte           |
+\ ---------------------------------------------------------------+
+
+ INC data_pointer+0:BNE next:INC data_pointer+1 :\ Step to next byte
+.next
+
+\ Now do a 16-bit decrement
+ LDA datalen+0:BNE skip             :\ num.lo<>0, not wrapping from 00 to FF
+ DEC datalen+1                      :\ Wrapping from 00 to FF, dec. high byte
+.skip
+ DEC datalen+0:BNE bytelp           :\ Dec. low byte, loop until num.lo=0
+ LDA datalen+1:BNE bytelp           :\ Loop until num=0
+ RTS
+
+

@@ -186,6 +186,5 @@ bank_save = save_a
 .test_wifi_ena
  lda uart_mcr       \ load status
  and #$01           \ test lowest bit (DTR)
-\lda #0
  rts                \ return
 

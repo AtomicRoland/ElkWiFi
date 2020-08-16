@@ -7,6 +7,20 @@
 \ Syntax:       *VERSION
 
 .version_cmd
+  \ Print ROM version
+  ldx #0            \ Load index
+.version_l1
+  lda romtitle,x
+  bne version_l1a
+  lda #' '
+.version_l1a
+  jsr osasci
+  inx
+  cpx #(commands-romtitle)
+  bne version_l1
+  jsr osnewl
+
+  \ Get ESP firemware version
   lda #2            \ load driver command
 
 .generic_cmd
