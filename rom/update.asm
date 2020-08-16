@@ -9,6 +9,7 @@
 \ Do not move this data block. It must be just before 
 \ the .date_time label!
 .updatestr    equs "VER="
+.crcstr       equs "CRC="
  
 .update_host
 equs "TCP",&0d
@@ -67,7 +68,6 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  jmp wifidriver
 
 .update_cmd                     \ Time command
- \    jmp update_crc_check    \ just go to the flash routine for development
  jsr checkupdate                \ Get latest version number
  \ process the response from server
  jsr reset_buffer               \ reset buffer register and pointer
@@ -109,6 +109,18 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  jsr osrdch                     \ read character from keyboard
  cmp #'y'                       \ compare to lower case Y
  bne update_cancelled
+
+\ Store received CRC
+ lda #<crcstr                   \ load address of string to search
+ sta needle                     \ and store it in workspace
+ lda #>crcstr
+ sta needle+1
+ lda #4
+ sta size
+ jsr fnd
+ bcc update_error
+ jsr update_store_crc
+
  jsr printtext
  equb &0D
  equs "Downloading update",&0D,&EA
@@ -139,7 +151,17 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  jsr wget_read_ipd          \ read the block length
  jmp update_crd_loop        \ read this block
 
-.update_crc_check           \ Do a crc check here!
+.update_crc_check           \ do a crc check here!
+ jsr printtext              \ print message
+ equs "Calculating crc16",&0D,&EA
+ jsr crc16                  \ calculate crc of the downloaded file
+ lda crc                    \ compare the two CRC values
+ cmp servercrc
+ bne update_crc_error
+ lda crc+1
+ cmp servercrc+1
+ bne update_crc_error
+
  lda #&FE                   \ load driver function number
  ldx #&03                   \ load rom bank number in EEPROM
  ldy #&20                   \ load start address of new code
@@ -149,4 +171,23 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  lda #14                    \ load close command code
  jsr wifidriver             \ close connection to server
  jmp call_claimed           \ CRC not implemented yet
+
+.update_store_crc
+ ldy #0                     \ reset pointer for copying the CRC to string buffer
+.update_store_l1
+ jsr read_buffer            \ read character from buffer
+ sta strbuf,y               \ store in string buffer
+ iny                        \ increment pointer
+ cpy #4                     \ four characters copied?
+ bne update_store_l1        \ no, then repeat loop
+ lda #&0D                   \ terminate the string
+ sta strbuf,y
+ ldy #0                     \ reset pointer
+ ldx #servercrc             \ address to store the received crc
+ jsr string2hex             \ convert received CRC to hex value
+ rts                        \ return to main routine
+
+.update_crc_error
+ ldx #(error_bad_crc-error_table)
+ jmp error
 

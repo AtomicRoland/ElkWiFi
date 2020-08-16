@@ -37,3 +37,5 @@
 .error_no_pagedram          equs "No paged ram found",&0D
 .error_disabled             equs "Wifi is disabled",&0D
 .error_opencon              equs "Connection error",&0D
+.error_bad_crc              equs "CRC error, update aborted",&0D
+\ Let op: de error tabel is vol (256 bytes) !
