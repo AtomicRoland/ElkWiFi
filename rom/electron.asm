@@ -7,7 +7,7 @@
             __ELECTRON__ = 1
             __ATOM__ = 0
 
-			uart = &FCF0            \ Base address for the 16C2552 UART B-port
+			uart = &FC30            \ Base address for the 16C2552 UART B-port
 
             pagereg = &FCFF
             pageram = &FD00
