@@ -644,8 +644,8 @@ rts
  bne do_flash2          \ jump if more bytes follow in this block
  dex                    \ decrement number of pages to copy
  beq do_flash3          \ jump if there are no more pages
- inc zp+1               \ decrement the msb of the source pointer
- inc zp+7               \ decrement the msb of the destination pointer
+ inc zp+1               \ increment the msb of the source pointer
+ inc zp+7               \ increment the msb of the destination pointer
  jmp do_flash1          \ copy the next block
 .do_flash3
  ldx save_x             \ restore bank number to flash

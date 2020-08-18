@@ -81,7 +81,7 @@ uart_mcr = uart+12
             stx uart_mcr        \ write to UART (this sets A15 of the EEPROM)
             ldx #&0F
             stx &FE05
-            ldx #1              \ reload bank number in X
+            ldx #0              \ reload bank number in X
             stx &FE05           \ write to ULA
             lda (src),y         \ load source data
             sta (dst),y         \ write to destination

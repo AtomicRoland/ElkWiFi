@@ -163,7 +163,7 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  bne update_crc_error
 
  lda #&FE                   \ load driver function number
- ldx #&03                   \ load rom bank number in EEPROM
+ ldx #&02                   \ load rom bank number in EEPROM
  ldy #&20                   \ load start address of new code
  jmp wifidriver             \ jump to the flash code; we won't come back here....
 
