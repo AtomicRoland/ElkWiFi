@@ -31,7 +31,10 @@
  jsr set_bank_nr        ; set new bank number (in serial.asm)
 
 .pdump_start
- ldy load_addr          ; load the offset in paged ram
+ lda load_addr          ; load the offset in paged ram
+ and #&F8               ; align to 0 or 8 offset
+ sta load_addr          ; store load address
+ tay                    ; transfer to index register
  lda load_addr+1        ; load page number
  sta pagereg            ; write it to page register
 
