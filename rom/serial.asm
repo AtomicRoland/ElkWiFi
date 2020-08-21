@@ -181,6 +181,25 @@ bank_save = save_a
  pla                \ restore A
  rts                \ end of routine
 
+\ Alternative bank number set routine, shorter and faster
+.set_bank_0         \ set it to 0
+ lda uart_mcr       \ load current value
+ and #&F7           \ clear bit 3 (MFB)
+ sta uart_mcr       \ write it back
+ rts                \ end of routine
+
+\ Alternative bank number set routine, shorter and faster
+.set_bank_1         \ set it to 1
+ lda uart_mcr       \ load current value
+ ora #&08           \ clear bit 3 (MFB)
+ sta uart_mcr       \ write it back
+ rts                \ end of routine
+
+\ Even more faster, write A to MCR
+.set_bank_a
+ sta uart_mcr       \ write value to MCR
+ rts
+
 \ Test if wifi is disabled
 \ This will return with Z=1 if wifi is disabled and Z=0 if wifi is enabled
 .test_wifi_ena
