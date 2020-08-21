@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.14"                 \ Rom version string
+.romversion         equs "0.15"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2020 Roland Leurs"
                     equb 0
@@ -182,6 +182,10 @@ include "electron.asm"
                     equb >update_cmd, <update_cmd
                     equs "CRC"
                     equb >crc_cmd, <crc_cmd
+                    equs "WICFS"
+                    equb >wicfs_cmd, <wicfs_cmd
+                    equs "QUPCFS"
+                    equb >bUPCFS, <bUPCFS
                     equb >command_x6, <command_x6
                     
 
@@ -213,6 +217,7 @@ include "electron.asm"
                     equs " UPDATE    Install ElkWifi ROM update",&0D
                     equs " VERSION   Print firmware version",&0D
                     equs " WGET      Get a file from a webserver",&0D
+                    equs " WICFS     Enable WiFi CFS",&0D
                     equs " WIFI      WiFi controle ON|OFF|HR|SR",&0D
                     nop
 .print_help_end     rts 
@@ -256,8 +261,9 @@ include "wificmd.asm"
 include "pdump.asm"
 include "join.asm"
 include "mode.asm"
-include "wget.asm"
 include "update.asm"
+include "wicfs.asm"
+include "wget.asm"
 
 equs "This is the end!"
 

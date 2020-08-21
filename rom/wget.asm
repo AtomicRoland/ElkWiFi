@@ -1,8 +1,10 @@
 \ WGET command
-\ Syntax:    *WGET [-T] [-A] [-P] <url> [address]
-\ Option:    -T        optional    print the downloaded file directly on the screen
+\ Syntax:    *WGET [-T | -X | -A | -P | -U] <url> [address]
+\ Option:    -T        optional    print the downloaded file directly on the screen, newline by &0D
+\            -X        optional    print the downloaded file directly on the screen, newline by &0A
 \            -A        optional    the file has an ATM header
 \            -P        optional    the file has an Atom-in-PC header
+\            -U        optional    the file is a UEF file
 \            url       required    the url of the file, including http(s)://
 \            address   optional    load address of the file
 \ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters since that option
@@ -10,13 +12,14 @@
 \ 
 \ (c) Roland Leurs, July 2020
 
+                proto = heap + &F6      \ 1 byte
                 newln = heap + &F7      \ 1 byte
                 clptr = heap + &F8      \ 1 byte
                 index = heap + &F9      \ 1 byte
                 tflag = heap + &FA      \ 1 byte
                 aflag = heap + &FB      \ 1 byte
                 pflag = heap + &FC      \ 1 byte
-                proto = heap + &FD      \ 1 byte
+                uflag = heap + &FD      \ 1 byte
                 laddr = heap + &FE      \ 2 bytes
 
 .wget_cmd                   \ start wget command
@@ -24,6 +27,7 @@
  sta tflag
  sta aflag
  sta pflag
+ sta uflag
  sta proto                  \ default no ssl (i.e. http)
  sta laddr
  sta laddr+1
@@ -36,7 +40,7 @@
  cpx #&00                   \ test if any parameter given, x will be > 0
  bne wget_read_params       \ continue if one parameter is on the command line
  jsr printtext              \ no parameter, print a message
- equs "Usage: WGET [-T] [-A] [-P] <url> [address]",&0D,&EA
+ equs "Usage: WGET [-T | -X | -A | -P | -U] <url> [address]",&0D,&EA
  jmp call_claimed           \ end of command
 
 .wget_read_params
@@ -49,14 +53,16 @@
  beq wget_option_t          \ jump if T
  cmp #'a'                   \ check for A (ATM header)
  beq wget_option_a          \ jump if A
- cmp #'u'                   \ check for U (unix text file)
- beq wget_option_u          \ jump if U
+ cmp #'x'                   \ check for X (unix text file)
+ beq wget_option_x          \ jump if X
  cmp #'p'                   \ check for P (Atom-in-PC header)
  beq wget_option_p          \ jump if P
+ cmp #'u'                   \ check for U (UEF file)
+ beq wget_option_u
  ldx #(error_bad_option-error_table)
  jmp error                  \ unrecognized option, throw an error
 
-.wget_option_u              
+.wget_option_x              
  lda #&0A                   \ load alternative new line character
  sta newln                  \ write to workspace
 .wget_option_t              
@@ -72,7 +78,12 @@
 .wget_option_p
  lda #1                     \ set flag to 1
  sta pflag
- bne wget_l1                \ jump always
+ jmp wget_l1                \ jump always (branching is too far)
+
+.wget_option_u
+ lda #1                     \ set flag to 1
+ sta uflag
+ jmp wget_l1                \ jump always (branching is too far)
 
 .wget_read_uri              \ the parameter is not an option switch, treat it like a url
  sty clptr                  \ save command line pointer
@@ -329,6 +340,14 @@
  bne wget_set_load_addr_l1  \ yes, there is a load address so jump
  jsr wget_set_default_load  \ otherwise set the default load address (PAGE on Electron, ?#12 on Atom)
 .wget_set_load_addr_l1
+ lda uflag                  \ is it an UEF file?
+ beq wget_set_load_addr_l2  \ no, then jump to store the load address in zero page
+ ldy #0                     \ reset pointer to paged RAM
+ sty load_addr              \ set "second page register"
+ sty sbufl                  \ reset tape length counter
+ sty sbufh
+ beq wget_crd_loop          \ jump always
+.wget_set_load_addr_l2
  lda laddr                  \ copy load address to zero page
  sta load_addr
  lda laddr+1
@@ -337,6 +356,8 @@
 .wget_crd_loop
  lda tflag                  \ check for T-flag (if set, dump data to screen)
  bne wget_dump_data
+ lda uflag                  \ check for U-flag (if set, keep data in paged RAM)
+ bne wget_read_uef_data 
  jsr wget_read_http_data    \ read received data block
  jmp wget_crd_l1            \ jump for next block
 .wget_dump_data
@@ -350,12 +371,81 @@
  jmp wget_crd_loop          \ read this block
 .wget_crd_end
  
+\ Store tape length in paged RAM
+ lda uflag                  \ test if UEF file
+ beq wget_close             \ it's not, jump
+ jsr wget_context_switch_in
+ lda #&FF
+ sta pagereg
+ lda sbufl
+ sta &FDFE
+ lda sbufh
+ sta &FDFF
+ jsr wget_context_switch_out
+
 \ Close connection
 .wget_close
  lda #14                    \ load close command code
  jsr wifidriver             \ close connection to server
  jmp call_claimed           \ end of command
 
+\ Read an UEF file, in this version only non-compressed files are supported
+\ and copied directly into the second paged RAM bank
+.wget_read_uef_data
+ jsr wget_test_end_of_data  \ test for end of data
+ bcc wget_read_uef_end      \ jump if end of data is reached
+ jsr read_buffer            \ read byte from input buffer
+ jsr wget_write_buffer      \ store in memory
+ inc sbufl                  \ increment tape length counter
+ bne wget_read_uef_l1
+ inc sbufh
+.wget_read_uef_l1
+ jsr dec_blocksize          \ decrement block size
+ bne wget_read_uef_data     \ jump if more bytes to read
+.wget_read_uef_end  
+ jmp wget_crd_l1            \ return from subroutine
+
+\ write data to the second paged RAM bank
+.wget_write_buffer
+ jsr wget_context_switch_in \ select second paged RAM bank
+ sta pageram,y              \ store data
+ iny                        \ increment pointer
+ bne wget_write_buffer_end  \ check for end of page
+ inc pagereg                \ end of page reached, increment page number
+ lda pagereg                \ check for end of memory reached
+ beq wget_write_buffer_full \ if 0 then wrapped, so buffer is full
+.wget_write_buffer_end
+ jsr wget_context_switch_out \ select primary paged RAM bank
+ rts
+
+.wget_write_buffer_full
+ ldx #(error_buffer_full-error_table)
+ jmp error
+
+\ Note to myself: als straks bekend is of een bestand gecomprimeerd is of niet
+\ dan kan ik de waarde voor mfb opslaan in een zeropage adres, dit inlezen en 
+\ instellen met jsr set_bank_a.
+.wget_context_switch_in
+ pha                        \ save A
+ lda pagereg                \ load page register
+ sta load_addr+1            \ save it in zero page
+ lda load_addr              \ load second page register
+ sta pagereg                \ activate it
+ jsr set_bank_1             \ activate the second paged RAM bank
+ pla                        \ restore A
+ rts                        \ return from subroutine
+
+.wget_context_switch_out
+ pha                        \ save A
+ lda pagereg                \ load second page register
+ sta load_addr              \ save it in zero page
+ lda load_addr+1            \ load primary page register
+ sta pagereg                \ activate it
+ jsr set_bank_0             \ activate the second paged RAM bank
+ pla                        \ restore A
+ rts                        \ return from subroutine
+
+.wget_write_uef
 .protocols
  equs "TCP",&0D
  equs "SSL",&0D
