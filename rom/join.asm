@@ -30,7 +30,7 @@
  jsr osrdch                 \ read character from keyboard
  cmp #&7F                   \ is it delete?    
  beq delete                 \ yes, then jump
- sta &140,x                 \ no, then store it as parameter
+ sta strbuf,x                 \ no, then store it as parameter
  pha                        \ save accu for printing an asterisk
  lda #'*'                   \ load asterisk
  jsr oswrch                 \ print it
