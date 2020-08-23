@@ -343,7 +343,8 @@
  lda uflag                  \ is it an UEF file?
  beq wget_set_load_addr_l2  \ no, then jump to store the load address in zero page
  ldy #0                     \ reset pointer to paged RAM
- sty load_addr              \ set "second page register"
+ sty pr_r                   \ set "second page register"
+ sty pr_y
  sty sbufl                  \ reset tape length counter
  sty sbufh
  beq wget_crd_loop          \ jump always
@@ -353,7 +354,7 @@
  lda laddr+1
  sta load_addr+1
 
-.wget_crd_loop
+.wget_crd_loop              \ copy received data
  lda tflag                  \ check for T-flag (if set, dump data to screen)
  bne wget_dump_data
  lda uflag                  \ check for U-flag (if set, keep data in paged RAM)
@@ -429,8 +430,9 @@
  pha                        \ save A
  lda pagereg                \ load page register
  sta load_addr+1            \ save it in zero page
- lda load_addr              \ load second page register
+ lda pr_r                   \ load second page register
  sta pagereg                \ activate it
+ ldy pr_y
  jsr set_bank_1             \ activate the second paged RAM bank
  pla                        \ restore A
  rts                        \ return from subroutine
@@ -438,14 +440,14 @@
 .wget_context_switch_out
  pha                        \ save A
  lda pagereg                \ load second page register
- sta load_addr              \ save it in zero page
+ sta pr_r                   \ save it in zero page
+ sty pr_y
  lda load_addr+1            \ load primary page register
  sta pagereg                \ activate it
  jsr set_bank_0             \ activate the second paged RAM bank
  pla                        \ restore A
  rts                        \ return from subroutine
 
-.wget_write_uef
 .protocols
  equs "TCP",&0D
  equs "SSL",&0D

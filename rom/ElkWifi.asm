@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.15"                 \ Rom version string
+.romversion         equs "0.16"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2020 Roland Leurs"
                     equb 0
@@ -184,6 +184,8 @@ include "electron.asm"
                     equb >crc_cmd, <crc_cmd
                     equs "WICFS"
                     equb >wicfs_cmd, <wicfs_cmd
+                    equs "REWIND"
+                    equb >rewind_cmd, <rewind_cmd
                     equs "QUPCFS"
                     equb >bUPCFS, <bUPCFS
                     equb >command_x6, <command_x6

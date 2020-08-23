@@ -78,6 +78,8 @@ cr	    =	13	    \<cr>
 sp	    =	32	    \<sp>
 esc	    =	27	    \<Escape>
 
+__debug =   0       \print debug information
+
 \end of declarations
 
 
@@ -102,6 +104,12 @@ esc	    =	27	    \<Escape>
 
 .wicfs_cmd
 .aUPCFS
+    if __debug = 1
+    php:jsr debug
+    equs "in aupcfs",&0D,&EA
+    plp
+    endif
+
 	LDA	&F4		    \record which slot UPURS occupies
 	STA	slotid
 	LDA	#vdu_off	\turn off screen output to hide
@@ -140,6 +148,11 @@ esc	    =	27	    \<Escape>
 
 \external *UPCFS interface code
 .bUPCFS	
+    if __debug = 1
+    php:jsr debug
+    equs "in bupcfs",&0D,&EA
+    plp
+    endif
     LDX	#0		        \index on X
 .b_a1
    	LDA	s_filev,X		\get a byte
@@ -169,22 +182,22 @@ esc	    =	27	    \<Escape>
 	STA	FSCVRTN+1
 
 \new UPCFS vector addresses
-	LDA	#>romsel		\FILEV, FINDV
+	LDA	#<romsel		\FILEV, FINDV
 	STA	OSFILEV
 	STA	OSFINDV
 
-	LDA	#<romsel
+	LDA	#>romsel
 	STA	OSFILEV+1
 	STA	OSFINDV+1
 
-	LDA	#>(romsel+(s_fscv-s_filev))	\FSCV
+	LDA	#<(romsel+(s_fscv-s_filev))	\FSCV
 	STA	OSFSCV
-	LDA	#<(romsel+(s_fscv-s_filev))
+	LDA	#>(romsel+(s_fscv-s_filev))
 	STA	OSFSCV+1
 
-	LDA	#>(romsel+(s_bgetv-s_filev))	\BGETV
+	LDA	#<(romsel+(s_bgetv-s_filev))	\BGETV
 	STA	OSBGETV
-	LDA	#<(romsel+(s_bgetv-s_filev))
+	LDA	#>(romsel+(s_bgetv-s_filev))
 	STA	OSBGETV+1
 
 	LDA	BYTEV		    \OSBYTE intercept
@@ -192,9 +205,9 @@ esc	    =	27	    \<Escape>
 	LDA	BYTEV+1
 	STA	notape+(osb_j-osb_s)+2
 	SEI			        \no interrupts during OSBYTE redirect
-	LDA	#>notape
-	STA	BYTEV
 	LDA	#<notape
+	STA	BYTEV
+	LDA	#>notape
 	STA	BYTEV+1
 	CLI
 	JSR	cfsinit		    \initialisations
@@ -219,16 +232,22 @@ esc	    =	27	    \<Escape>
 \Main FILEV (+FINDV), FSCV and BGETV entry points. Traps full file loads,
 \load & run (*RUN), sequential access file open and single byte get. 
 
-.upfilev	BEQ	upf_a7		\If A=0, possible file close r=est
+.upfilev
+    if __debug = 1
+    php:jsr debug
+    equs "in upfilev",&0D,&EA
+    plp
+    endif
+	BEQ	upf_a7		\If A=0, possible file close request
 	CMP	#255		\file load?
 	BEQ	upf_a1		\yes, goto process
-	AND	#192		\sequential file access r=est?
+	AND	#192		\sequential file access request?
 	BNE	upf_a2		\yes, goto further tests
 	BEQ	upf_a6		\else command not supported by UPCFS
 
 .upf_a7	TYA			\A=0, test Y
-	BEQ	upf_a8		\Y=0, close all files r=est
-	CMP	#1		\if Y=1, close #1 r=est 	
+	BEQ	upf_a8		\Y=0, close all files request
+	CMP	#1		\if Y=1, close #1 request 	
 	BNE	upf_a6		\else A=0, Y<>0 or 1, exit no action
 .upf_a8	LDA	#0		\close file
 	STA	sfopen
@@ -240,9 +259,9 @@ esc	    =	27	    \<Escape>
 .upf_a1	JSR	starload		\goto action file load
 	JMP	romsel+(actioned-s_filev)	\and return claiming command
 
-.upf_a2	CMP	#128		\exclusive output r=est?
+.upf_a2	CMP	#128		\exclusive output request?
 	BNE	upf_a3		\no, includes input sp process
-	LDA	#12		\else output only r=ested..
+	LDA	#12		\else output only requested..
 	JSR	xmess		\report error..
 	BEQ	upf_a5		\and exit
 
@@ -261,7 +280,14 @@ esc	    =	27	    \<Escape>
 \...............................................................................
 \Filters selected FSCV functions
 
-.upfscv	CMP	#5		\*CAT ?
+.upfscv
+    if __debug = 1
+    php:jsr debug
+    equs "in upfscv",&0D,&EA
+    plp
+    endif
+
+	CMP	#5		\*CAT ?
 	BNE	upv_a1		\no, next check
 	PHA
 	JSR	upcat		\perform a *CAT
@@ -284,7 +310,13 @@ esc	    =	27	    \<Escape>
 
 .upv_a2	JMP	xfscv		\not a supported UPCFS command, exit
 
-.uprun	JSR	starrun		\first, find the file and *LOAD it
+.uprun
+    if __debug = 1
+    php:jsr debug
+    equs "in uprun",&0D,&EA
+    plp
+    endif
+	JSR	starrun		\first, find the file and *LOAD it
 	BNE	clfscv		\if file found, return to run
 	LDA	loadrun		\else reset run flag before returning
 	AND	#&7F
@@ -297,7 +329,13 @@ esc	    =	27	    \<Escape>
 \...............................................................................
 \Handles BGET (single byte read from sequential access file)
 
-.upbgetv	TXA			\preserve X
+.upbgetv
+    if __debug = 1
+    php:jsr debug
+    equs "in upbgetv",&0D,&EA
+    plp
+    endif
+	TXA			\preserve X
 	PHA
 	LDA	sfopen		\file open?
 	BMI	bg_a1		\yes, continue
@@ -342,7 +380,8 @@ esc	    =	27	    \<Escape>
 \...............................................................................
 \Local common subroutine to select UPURS rom
 
-.aupurs	PHA			\preserve A
+.aupurs
+	PHA			\preserve A
 	SEI			\no interrupts during rom switching
 	LDA	&F4		\log current sw rom (probably BASIC)
 	STA	currom
@@ -384,7 +423,8 @@ esc	    =	27	    \<Escape>
 \...............................................................................
 \Local common subroutine to deselect UPURS rom
 
-.bupurs	PHA			\preserve A
+.bupurs
+	PHA			\preserve A
 	SEI			\no interrupts during rom switching
 	LDA	currom		\restore active rom prior to UPCFS call
 	STA	&F4
@@ -400,24 +440,32 @@ esc	    =	27	    \<Escape>
 \~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \Download code for OSBYTE *TAPE trap. Copied to notape by *QUPCFS
 
-.osb_s	CMP	#&8C		\*TAPE ?
+.osb_s
+	CMP	#&8C		\*TAPE ?
 	BNE	osb_j		\no, continue to OSBYTE
-	RTS			\yes, return no action
+	RTS	    		\yes, return no action
 
 .osb_j	JMP	&0000		\continue to OSBYTE at OS vector..
-				\..address written by *QUPCFS
+		        		\..address written by *QUPCFS
 .osb_e	NOP
 
 \===============================================================================
 \Loads a file into memory (*LOAD)
 
-.starload	LDA	#0		\clear flags
+.starload
+    if __debug = 1
+    php:jsr debug
+    equs "in starload",&0D,&EA
+    plp
+    endif
+	LDA	#0  		\clear flags
 	STA	loadrun
 	JSR	wsinit		\initialise workspace (&B0..&BF)
 	LDA	#&C0		\set *OPT mask for load
 	STA	optmask
 	JSR	flinit		\initialise load parameters
-.runentry	JSR	newuef		\check_for/process new uef
+.runentry
+	JSR	newuef		\check_for/process new uef
 	BCS	stl_nf		\on error, return flagging not found
 	JSR	findf		\find the embedded CFSfile
 	BEQ	stl_nf		\if A=0, file not found
@@ -466,7 +514,13 @@ esc	    =	27	    \<Escape>
 \-------------------------------------------------------------------------------
 \Loads current CFS data block into memory
 
-.loadblk	JSR	getbyte		\get a block data byte from PC
+.loadblk
+    if __debug = 1
+    php:jsr debug
+    equs "in loadblk",&0D,&EA
+    plp
+    endif
+	JSR	getbyte		\get a block data byte from PC
 	BCS	ldb_err		\abort on error
 	LDY	#0		\write to Beeb memory
 	STA	(CFSload),Y
@@ -510,7 +564,13 @@ esc	    =	27	    \<Escape>
 \For a file load, analyses the calling parameters to identify and fetch any
 \filename and/or explicit load address.
 
-.flinit	STX	pbl		\collect filename & load addr (if any) 
+.flinit
+    if __debug = 1
+    php:jsr debug
+    equs "in flinit",&0D,&EA
+    plp
+    endif
+	STX	pbl		\collect filename & load addr (if any) 
 	STY	pbh
 	LDA	loadrun		\initial default is file load address
 	ORA	#1		\b0=1
@@ -567,7 +627,13 @@ esc	    =	27	    \<Escape>
 \-------------------------------------------------------------------------------
 \Executes *RUN or */ After run-specific inits, joins *LOAD code
 
-.starrun	JSR	wsinit		\initialise CFS workspace
+.starrun
+    if __debug = 1
+    php:jsr debug
+    equs "in starrun",&0D,&EA
+    plp
+    endif
+	JSR	wsinit		\initialise CFS workspace
 	LDA	#&C0		\set *OPT mask for load
 	STA	optmask
 	LDA	loadrun		\set UPCFS run flag true
@@ -604,7 +670,13 @@ esc	    =	27	    \<Escape>
 \-------------------------------------------------------------------------------
 \Opens a file for sequential access (read only for UPCFS)
 
-.fopen	JSR	wsinit		\initialise workspace (&B0..&BF)
+.fopen
+    if __debug = 1
+    php:jsr debug
+    equs "in fopen",&0D,&EA
+    plp
+    endif
+	JSR	wsinit		\initialise workspace (&B0..&BF)
 	LDA	#&0C		\set *OPT mask for sequential access
 	STA	optmask
 	STX	pbl		\save XY filename pointer
@@ -637,7 +709,13 @@ esc	    =	27	    \<Escape>
 \Fetches one byte from an open sequential access file. Maintains the buffer in
 \page &A filling as necessary until EOF.
 
-.upget	LDA	#&0C		\set *OPT mask for sequential access
+.upget
+    if __debug = 1
+    php:jsr debug
+    equs "in upget",&0D,&EA
+    plp
+    endif
+	LDA	#&0C		\set *OPT mask for sequential access
 	STA	optmask
 	LDA	sfopen		\get file status
 	AND	#1		\buffer empty?
@@ -684,7 +762,13 @@ esc	    =	27	    \<Escape>
 \-------------------------------------------------------------------------------
 \Fills the BGET buffer (&A00-&AFF) from the open input file
 
-.fillget	LDA	#0		\reset buffer address to &0A00
+.fillget
+    if __debug = 1
+    php:jsr debug
+    equs "in fillget",&0D,&EA
+    plp
+    endif
+	LDA	#0		\reset buffer address to &0A00
 	STA	CFSload
 	LDA	#&A
 	STA	CFSload+1
@@ -727,11 +811,16 @@ esc	    =	27	    \<Escape>
 
 \get a copy of the next byte in buffer
 .newuef	
+    if __debug = 1
+    php:jsr debug
+    equs "in newuef",&0D,&EA
+    plp
+    endif
     LDA	sbuft		\start of file?
 	BNE	new_a1		\no, copy byte directly
     INC sbuft       \increase once, so it's marked not start of file
 .new_a1
-	JSR	getbyte		\else perform standard read
+	JSR	getbyte_nofwd	\else perform a read
 	BCS	new_x		\return immediately on error
 
 .new_a2
@@ -750,9 +839,15 @@ esc	    =	27	    \<Escape>
     RTS			\and return
 
 \-------------------------------------------------------------------------------
-\Locates the r=ired CFS file in the UEF. Returns A=1 if file found else A=0
+\Locates the required CFS file in the UEF. Returns A=1 if file found else A=0
 
-.findf	LDA	&E3		\report searching if not *OPT1,0
+.findf
+    if __debug = 1
+    php:jsr debug
+    equs "in findf",&0D,&EA
+    plp
+    endif
+	LDA	&E3		\report searching if not *OPT1,0
 	AND	optmask		\test message bits
 	BEQ	fnd_a0		\if messages surpressed, skip
 	LDA	#10		\else report searching
@@ -813,7 +908,13 @@ esc	    =	27	    \<Escape>
 \Display handler for last block of a CFS file
 \Tests for *OPT1,0 and if TRUE, returns no action (messages surpressed)
 
-.lastblk	LDA	&E3		\CFS Options Byte
+.lastblk
+    if __debug = 1
+    php:jsr debug
+    equs "in lastblk",&0D,&EA
+    plp
+    endif
+	LDA	&E3		\CFS Options Byte
 	AND	optmask		\test message bits
 	BEQ	lblk_x		\if messages surpressed, exit no action
 
@@ -846,7 +947,6 @@ esc	    =	27	    \<Escape>
 .lblk_x	LDA	#0		\reset current/next block
 	STA	curblk
 	STA	nxtblk
-
 	RTS			\and return
 
 \-------------------------------------------------------------------------------
@@ -854,7 +954,8 @@ esc	    =	27	    \<Escape>
 \copy of this block number in curblk for comparison with expected block nxtblk
 \Tests for *OPT1,0 and if TRUE, returns no action (messages surpressed)
  
-.prblock	LDA	&E3		\CFS Options Byte
+.prblock
+	LDA	&E3		\CFS Options Byte
 	AND	optmask		\test message bits
 	BEQ	prb_a5		\if messages surpressed, exit only..
 				\..updating block number record
@@ -890,7 +991,13 @@ esc	    =	27	    \<Escape>
 \Tests if next Chunk (header just loaded) is CFS. Returns A=1 if CFS tape block
 \else returns A=0
 
-.cfstest	LDA	hchunk		\looking for chunk type &0100
+.cfstest
+    if __debug = 1
+    php:jsr debug
+    equs "in cfstest",&0D,&EA
+    plp
+    endif
+	LDA	hchunk		\looking for chunk type &0100
 	BNE	cfst_no		\not CFS tape block, skip
 	LDA	hchunk+1
 	CMP	#&01
@@ -912,21 +1019,30 @@ esc	    =	27	    \<Escape>
 	CMP	#&FF
 	BNE	cfst_no
 	DEC	hchunk+5
-.cfst_no	LDA	#0		\return A=0, not CFS
+.cfst_no
+	LDA	#0		\return A=0, not CFS
 	BEQ	cfst_x		\and exit
 
-.cfst_yes	LDA	#1		\return A=1, CFS tape block
+.cfst_yes
+	LDA	#1		\return A=1, CFS tape block
 
-.cfst_x	RTS
+.cfst_x
+	RTS
 
 \-------------------------------------------------------------------------------
 \Initialises UPCFS workspace and resets 6522
 
 .wsinit				\workspace inits (&B0-&BD)
+    if __debug = 1
+    php:jsr debug
+    equs "in wsinit",&0D,&EA
+    plp
+    endif
 	STX	temp		\preserve X
 	LDA	#0		\initilaise CFS zp block descriptors
 	LDX	#0		\index on X
-.wsi_a1	STA	&B0,X
+.wsi_a1
+	STA	&B0,X
 	INX
 	CPX	#&0E
 	BNE	wsi_a1		\loop till all done
@@ -936,28 +1052,38 @@ esc	    =	27	    \<Escape>
 \-------------------------------------------------------------------------------
 \Performs a *CAT of the UEF file showing tape files only as per CFS
 
-.upcat	LDA	#cr		\begin with a blank line
+.upcat
+    if __debug = 1
+    php:jsr debug
+    equs "in upcat",&0D,&EA
+    plp
+    endif
+	LDA	#cr		    \begin with a blank line
 	JSR	OSASCI
 	JSR	f_title		\validate UEF file title
 	BCC	upc_a1		\title ok, continue
 	JMP	upc_x		\else quit
 	
-.upc_a1	JSR	wsinit		\init workspace
+.upc_a1
+	JSR	wsinit		\init workspace
 	LDA	#&C0		\set *OPT mask for load
 	STA	optmask
 	LDA	loadrun		\set *CAT flag
 	ORA	#2
 	STA	loadrun
 
-.upc_a2	JSR	chunk		\fetch next chunk header into mem
+.upc_a2
+	JSR	chunk		\fetch next chunk header into mem
 	BCC	upc_a9		\good fetch, continue
 	JMP	upc_x		\else exit
 
-.upc_a9	JSR	cfstest		\CFS block?
+.upc_a9
+	JSR	cfstest		\CFS block?
 	BNE	upc_a10		\yes, continue
 	JMP	notcfs		\else goto skip current non-cfs block
 
-.upc_a10	JSR	header		\tape block, fetch the header
+.upc_a10
+	JSR	header		\tape block, fetch the header
 	BCS	upc_x		\exit immediately on error
 	JSR	prblock		\else print filename and block number
 
@@ -970,7 +1096,8 @@ esc	    =	27	    \<Escape>
 	LDA	#6
 	JSR	xmess
 
-.upc_a5	LDA	&3CA		\test for last block
+.upc_a5
+	LDA	&3CA		\test for last block
 	AND	#&80		\ = Bit 7 of Block Flag
 	BNE	upc_a6		\last block, goto process
 	INC	nxtblk		\else increment 'next block'
@@ -979,25 +1106,35 @@ esc	    =	27	    \<Escape>
 	BCS	upc_x		\exit immediately on error
 	JMP	upc_a2		\loop for next Chunk 
 
-.upc_a6	JSR	lastblk		\display last block info
+.upc_a6
+	JSR	lastblk		\display last block info
 
 	JSR	adjlen		\prepare to skip remainder of CFS block
 	JSR	chskip		\and skip
 	BCS	upc_x		\exit immediately on error
 	JMP	upc_a2		\loop for next Chunk
 
-.notcfs	JSR	chskip		\skip this chunk
+.notcfs
+	JSR	chskip		\skip this chunk
 	BCS	upc_x		\exit immediately on error
 	JMP	upc_a2		\and loop for next chunk
 
-.upc_x	RTS
+.upc_x
+	RTS
 
 
 \-------------------------------------------------------------------------------
 \Validates UEF file by checking that first 10 bytes are 'UEF File!' + &00
 
-.f_title	LDX	#&FF		\index on X
-.ft_a1	INX			\increment index
+.f_title
+    if __debug = 1
+    php:jsr debug
+    equs "in f_title",&0D,&EA
+    plp
+    endif
+	LDX	#&FF		\index on X
+.ft_a1
+	INX 			\increment index
 	STX	tmpidx		\preserve index
 	JSR	getbyte		\fetch UEF byte
 	BCS	titerr		\error, no byte available
@@ -1033,7 +1170,13 @@ esc	    =	27	    \<Escape>
 \-------------------------------------------------------------------------------
 \Fetches a CFS tape block header into CFS memory
 
-.header	LDX	#&FF		\fetching filename, index on X
+.header
+    if __debug = 1
+    php:jsr debug
+    equs "in header",&0D,&EA
+    plp
+    endif
+	LDX	#&FF		\fetching filename, index on X
 .hd_a1	INX			\increment index
 	STX	tmpidx		\preserve index
 	JSR	getbyte		\get a filename byte
@@ -1079,11 +1222,17 @@ esc	    =	27	    \<Escape>
 \-------------------------------------------------------------------------------
 \Adjusts CFS block length to account for filename + leading descriptors
 
-.adjlen	LDA	fnlen		\block filename length
+.adjlen
+    if __debug = 1
+    php:jsr debug
+    equs "in adjlen",&0D,&EA
+    plp
+    endif
+	LDA	fnlen		\block filename length
 	CLC
-	ADC	#20		\plus leading/trailing descriptors
+	ADC	#20		    \plus leading/trailing descriptors
 	STA	temp		\and save
-	LDA	hchunk+2		\CFS block length lo
+	LDA	hchunk+2	\CFS block length lo
 	SEC
 	SBC	temp
 	STA	hchunk+2
@@ -1097,41 +1246,61 @@ esc	    =	27	    \<Escape>
 \-------------------------------------------------------------------------------
 \Discards (X) bytes from the UEF file. (To skip 256 bytes, set X=0)
 
-.discard	STX	tmpidx		\init index
-.dsc_a1	JSR	getbyte		\get one byte
+.discard
+    if __debug = 1
+    php:jsr debug
+    equs "in discard",&0D,&EA
+    plp
+    endif
+	STX	tmpidx		\init index
+.dsc_a1
+	JSR	getbyte		\get one byte
 	BCS	dsc_err		\if EOF, report error
 	DEC	tmpidx		\count down
 	BNE	dsc_a1		\loop until done
-	CLC			\return no error
+	CLC 			\return no error
 	BCC	dsc_x
 
-.dsc_err	LDA	#8		\report unexpected EOF error
+.dsc_err
+	LDA	#8  		\report unexpected EOF error
 	JSR	xmess
-	SEC			\return flagging error
-	
-.dsc_x	RTS			\and exit
+	SEC 			\return flagging error
+
+.dsc_x
+	RTS			\and exit
 
 \-------------------------------------------------------------------------------
 \Skip the current Chunk whose length is stored in hchunk+2.. (ls,midl,midh,ms)
 
-.chskip	LDX	hchunk+2		\ls chunk length
+.chskip
+    if __debug = 1
+    php:jsr debug
+    equs "in chskip",&0D,&EA
+    plp
+    endif
+	LDX	hchunk+2	\ls chunk length
 	BEQ	chs_a1		\no ls bytes
 	JSR	discard		\else discard ls bytes
 	BCS	chs_x		\exit on error
-.chs_a1	LDX	hchunk+3		\midl chunk length
+.chs_a1
+	LDX	hchunk+3	\midl chunk length
 	BEQ	chs_a5		\no midl bytes
-.chs_a2	LDX	#0		\discard 256 byte blocks
+.chs_a2
+	LDX	#0		    \discard 256 byte blocks
 	JSR	discard
 	BCS	chs_x		\exit on error
 	DEC	hchunk+3
 	BNE	chs_a1		\and loop until midl discarded
-.chs_a5	LDA	hchunk+4		\midh chunk length
+.chs_a5
+	LDA	hchunk+4	\midh chunk length
 	BEQ	chs_a3		\none to discard, process ms length
-.chs_a4	DEC	hchunk+4		\else discard midh in 256*256 blocks
+.chs_a4
+	DEC	hchunk+4	\else discard midh in 256*256 blocks
 	JMP	chs_a2		\until mid=0
-.chs_a3	LDA	hchunk+5		\ms chunk length
+.chs_a3
+	LDA	hchunk+5	\ms chunk length
 	BEQ	chs_ok		\none to discard, exit
-	DEC	hchunk+5		\else discard ms in 256*256*256 blocks
+	DEC	hchunk+5	\else discard ms in 256*256*256 blocks
 	JMP	chs_a4		\until ms=0
 
 .chs_ok	CLC			\Clear carry if no errors from discards
@@ -1141,7 +1310,13 @@ esc	    =	27	    \<Escape>
 \-------------------------------------------------------------------------------
 \Fetches next 6-byte Chunk header into memory
 
-.chunk	LDA	#0		\reset chunk in progress flag
+.chunk
+    if __debug = 1
+    php:jsr debug
+    equs "in chunk",&0D,&EA
+    plp
+    endif
+	LDA	#0		\reset chunk in progress flag
 	STA	inchunk
 	LDX	#&FF		\index on X
 .ch_a1	INX			\increment index
@@ -1153,7 +1328,6 @@ esc	    =	27	    \<Escape>
 	STA	hchunk,X		\stash it
 	CPX	#5		\done 6 bytes?
 	BNE	ch_a1		\no, loop for next
-
 	LDA	hchunk+1		\test for valid Chunk major type
 	CMP	#&FF		\&FF = reserved but valid
 	BEQ	chok		\= &FF
@@ -1187,9 +1361,8 @@ esc	    =	27	    \<Escape>
 .ch_rtn	RTS			\return
 
 \-------------------------------------------------------------------------------
-\Returns one byte in A from the User Serial Port. Fills buffer as required
-\until end of PC file. Returns C=0 if byte in A else returns C=1 if no further
-\bytes available (end of UEF)
+\Returns one byte in A from the paged RAM. Returns C=0 if byte in A else returns C=1 if no further
+\bytes available (end of UEF). The pointer is forwarded and the number of bytes left is decreased.
 
 .getbyte	
     lda sbufl       \check if end-of-tape is reached
@@ -1225,6 +1398,26 @@ esc	    =	27	    \<Escape>
 .bcx	RTS
 
 \-------------------------------------------------------------------------------
+\Returns one byte in A from the paged RAM. Returns C=0 if byte in A else returns C=1 if no further
+\bytes available (end of UEF). The pointer and the number of bytes are unchanged.
+
+.getbyte_nofwd	
+    lda sbufl       \check if end-of-tape is reached
+    ora sbufh       \when empty this will result to &00
+    beq nodata      \jump if &00, end-of-tape is reached
+    jsr set_bank_1  \select paged ram bank
+    ldy pr_y        \load pointer to paged ram
+    lda pr_r
+    sta pagereg
+    lda pageram,y   \load data
+    sta &FC38       \write to serial A port just as an indicator that we get a byte
+    pha             \save data
+    jsr set_bank_0  \select first paged ram bank
+    pla
+	CLC 			\and return flagging byte ready (C=0)
+	RTS
+
+\-------------------------------------------------------------------------------
 \Converts a..z to uppercase (A..Z unaffected). Enter with character in A
 
 .upper
@@ -1240,6 +1433,11 @@ esc	    =	27	    \<Escape>
 \Program initialisations
 
 .cfsinit
+    if __debug = 1
+    php:jsr debug
+    equs "in cfsinit",&0D,&EA
+    plp
+    endif
 	LDA	#1		    \set CFS active flags true
 	STA	CFSact2
     JSR wget_context_switch_in
@@ -1297,4 +1495,28 @@ esc	    =	27	    \<Escape>
 
 \-------------------------------------------------------------------------------
 \** end of WiCFS **
+
+.rewind_cmd
+    jsr cfsinit     \ initialize the tape (i.e. set pointers to beginning of paged RAM)
+    jmp call_claimed
+
+.debug              sta save_a
+                    stx save_x
+                    sty save_y
+                    pla                     \ get low byte from stack
+                    sta zp                  \ set in workspace
+                    pla                     \ get high byte from stack
+                    sta zp+1                \ set in workspace
+.debug_l1           ldy #0                  \ load index
+                    inc zp                  \ increment pointer
+                    bne debug_l2        
+                    inc zp+1
+.debug_l2           lda (zp),y              \ load character
+                    bmi debug_l3            \ jmp if end of string
+                    jsr osasci              \ print character
+                    jmp debug_l1            \ next character
+.debug_l3           lda save_a
+                    ldx save_x
+                    ldy save_y
+                    jmp (zp)                \ return to calling routine
 
