@@ -420,6 +420,8 @@
  rts
 
 .wget_write_buffer_full
+ lda #14                    \ load close command code
+ jsr wifidriver             \ close connection to server
  ldx #(error_buffer_full-error_table)
  jmp error
 
@@ -713,5 +715,7 @@ endif
 .wget_http_status_err
  ldx index                  \ restore pointer to http status code
  jsr print_string           \ print the status code + message
+ lda #14                    \ load close command code
+ jsr wifidriver             \ close connection to server
  ldx #(error_http_status-error_table)
  jmp error                  \ throw an error
