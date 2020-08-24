@@ -142,6 +142,10 @@ include "electron.asm"
                     beq autorun_l1
                     lda #7                      \ ring the bell on power on and hard reset
                     jsr oswrch
+                    cpx #1                      \ was it a power on reset
+                    bne autorun_l1              \ no, then jump to the logo print
+                    txa                         \ load A with 1 (driver function hardware reset)
+                    jsr wifidriver              \ perform a hard reset
 .autorun_l1         jsr print_logo              \ print the logo if wifi is enabled
                     jsr printtext               \ perform new line
                     equb &D,&D,&EA
