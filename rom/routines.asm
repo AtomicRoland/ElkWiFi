@@ -256,11 +256,11 @@ endif
  ldy save_y                 \ restore Y register
  rts                        \ end subroutine
  
-\ Print the Acorn Electron logo
+\ Print the WiFi logo
 if __ELECTRON__
- jsr test_wifi_ena          \ test wifi enabled status
- beq logo2                  \ jump if wifi is disabled
 .print_logo
+ jsr test_wifi_ena          \ test wifi enabled status
+ bne logo2                  \ jump if wifi is disabled
  ldx #7                     \ load index for copy
 .logo1
  lda wifi_symbol,x          \ load data

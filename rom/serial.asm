@@ -204,6 +204,6 @@ bank_save = save_a
 \ This will return with Z=1 if wifi is disabled and Z=0 if wifi is enabled
 .test_wifi_ena
  lda uart_mcr       \ load status
- and #$01           \ test lowest bit (DTR)
+ and #&01           \ test lowest bit (DTR)
  rts                \ return
 
