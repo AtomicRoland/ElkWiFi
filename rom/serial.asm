@@ -118,6 +118,9 @@ bank_save = save_a
  bne uart_wait_for_data     \ if not expired wait another cyclus
  dec timer+2
  bne uart_wait_for_data     \ if not expired wait another cyclus
+ lda &FE05                  \ clear all pending interrupts
+ ora #&70
+ sta &FE05
  cli                        \ enable interrupts
  rts                        \ no data received, end routine
 
