@@ -186,8 +186,6 @@ include "electron.asm"
                     equb >update_cmd, <update_cmd
                     equs "CRC"
                     equb >crc_cmd, <crc_cmd
-                    equs "DISCONNECT"
-                    equb >wget_close, <wget_close
                     equs "WICFS"
                     equb >wicfs_cmd, <wicfs_cmd
                     equs "REWIND"
