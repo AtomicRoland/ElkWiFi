@@ -277,13 +277,14 @@
  ldx #0                     \ reset index
 .wget_get_l6
  lda user_agent,x           \ load character
+ beq wget_load_address      \ stop copying if the string is ended
  sta heap,y                 \ write to heap
  iny                        \ increment heap pointer
  inx                        \ increment buffer index
- cmp #&00                   \ test for end of header
- bne wget_get_l6            \ jump if characaters left
+ bpl wget_get_l6            \ jump if characaters left, limited to 128 characters
 
 \ Now read the load address
+.wget_load_address
  sty save_y                 \ save the header length
  ldx index                  \ restore index to string buffer
  ldy clptr                  \ restore pointer on command line
