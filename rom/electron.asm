@@ -11,7 +11,7 @@
 
             pagereg = &FCFF
             pageram = &FD00
-			timer = pageram + 250   \ Count down timer, 3 bytes
+			timer = &100            \ Count down timer, 3 bytes
 			time_out = timer + 4    \ Time-out setting, 1 byte
 
             errorspace = &100       \ Some volatile memory area for generating error messages

@@ -118,11 +118,7 @@ bank_save = save_a
  bne uart_wait_for_data     \ if not expired wait another cyclus
  dec timer+2
  bne uart_wait_for_data     \ if not expired wait another cyclus
- lda &FE05                  \ clear all pending interrupts
- ora #&70
- sta &FE05
- cli                        \ enable interrupts
- rts                        \ no data received, end routine
+ beq uart_read_end          
 
 \ Data stream has started. The time-out is here counted by the Y register. The next byte should arrive
 \ after 80 microseconds. This loop will be long enough to cover this time about 40 times.
@@ -143,9 +139,74 @@ bank_save = save_a
  bne uart_read_start        \ read byte if received
  beq uart_read_l1           \ else decrement timer
 .uart_read_end
+ lda &F4                    \ clear all pending interrupts
+ ora #&70
+ sta &FE05
  cli                        \ enable interrupts
- rts                        \ end of routine
+ rts                        \ no data received, end routine
 
+\ Alternative routine to get the data from a webserver. While the uart_read_response is suitable
+\ for reading data that comes in one block, this routine is written for data coming in multiple
+\ blocks like driver call 13 (cipsend). That function can produce a few bursts of data and that
+\ makes uart_read_response unsuitable.
+\ This function uses a long time-out until the first + sign is received. This indicates the first
+\ +IPD: marker and thus the start of the main data transfer. From that point on, the receiving routine
+\ uses the short time out counter.
+.uart_get_response
+ sei                        \ disable interrupts
+ ldx #0                     \ reset buffer pointer
+ stx pagereg
+.uart_get_resp_l1
+ ldy time_out               \ initialize timer
+ sty timer                  \ the timer addresses must not be in the Electron's main
+ sty timer+1                \ memory. So I picked the last bytes of the paged RAM since
+ sty timer+2                \ this timer will only be used before the data transfer starts.
+.uart_gr_wait
+ lda uart_lsr               \ test data present
+ and #&01
+ bne uart_gr_read_data      \ jump if data received
+ 
+\ Decrement long timer
+ dec timer                  \ decrement timer
+ bne uart_gr_wait
+ dec timer+1
+ bne uart_gr_wait           \ if not expired wait another cyclus
+ dec timer+2
+ bne uart_gr_wait           \ if not expired wait another cyclus
+ beq uart_read_end          
+
+.uart_gr_read_data
+ lda uart_rhr               \ load received data
+ cmp #'+'                   \ is it a plus (start of +IPD)?
+ beq uart_gr_read_l1        \ yes, then jump
+ sta pageram,x              \ store in memory
+ inx
+ bne uart_get_resp_l1       \ jump if not page crossing
+ inc pagereg                \ increment page register
+ bne uart_get_resp_l1       \ jump if not end of ram reached
+ jmp buffer_full            \ throw error
+
+
+\ Data stream has started. The time-out is here counted by the Y register. The next byte should arrive
+\ after 80 microseconds. This loop will be long enough to cover this time about 40 times.
+.uart_gr_read_start
+ ldy #0                     \ load (very) short timer
+ lda uart_rhr               \ read received data
+.uart_gr_read_l1
+ sta pageram,x              \ store in memory
+ inx                        \ increment memory pointer
+ bne uart_gr_read_l3
+ inc pagereg                \ increment page register
+ bne uart_gr_read_l3        \ jump if not end of ram reached
+ jmp buffer_full            \ throw error
+.uart_gr_read_l2       
+ dey                        \ decrement short timer 
+ beq uart_read_end          \ jump if transfer has ended
+.uart_gr_read_l3
+ lda uart_lsr               \ load status byte
+ and #&01                   \ test if data received
+ bne uart_gr_read_start     \ read byte if received
+ beq uart_gr_read_l2        \ else decrement timer
 
 \ Save bank number
 \ Saves the current 64K bank number of the paged RAM
