@@ -343,9 +343,7 @@
  bne smb1
  lda #4                 \ set time out
  sta time_out
- jsr read_response
- jsr read_response
- jmp read_response
+ jmp uart_get_response  \ use alternative routine to get the response
  
 .cipclose \ close tcp/ip connection
  jsr send_command
@@ -408,16 +406,17 @@
  rts
 
 \ Initialize the data buffer, by resetting the paged ram register to 0
-\ and clearing the first page. After a command is executed and if the first
+\ and clearing the first byte. After a command is executed and if the first
 \ byte is 0 then there was no response from the ESP8266. This call is intended
 \ before a command is executed.
 .clear_buffer
  jsr reset_buffer
- txa
-.irb_l1
- sta pageram,x
- inx
- bne irb_l1
+ stx pageram
+; txa
+;.irb_l1
+; sta pageram,x
+; inx
+; bne irb_l1
  rts
 
 \ Reads a character from the paged ram buffer at position X

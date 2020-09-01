@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.16"                 \ Rom version string
+.romversion         equs "0.17"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2020 Roland Leurs"
                     equb 0
