@@ -308,6 +308,7 @@
  jmp read_response
  
 .cipsend \ send tcp/ip data
+ sei
  ldx save_x
  \ x points to zero page address with control block.
  \ two bytes start address of data

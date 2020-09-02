@@ -314,6 +314,9 @@
  sta &04,x
  lda #13                    \ load driver command
  jsr wifidriver             \ send the header
+ stx datalen                \ store end of data block
+ lda pagereg
+ sta datalen+1
 
 \ Process received data
 .wget_copy_received_data
@@ -324,7 +327,22 @@
  jsr wget_http_status       \ check for HTTP statuscode 200
  jsr wget_search_crlf       \ search for newline
 
+ \ Some webservers, like the Python SimpleHTTP send the HTTP header in a separate
+ \ ethernet frame. So we must check here if the block length of the first +IPD has
+ \ become zero or negative. The maximum block length is about 1470 bytes.
+ lda blocksize+1            \ check if block size is negative
+; php:jsr printhex:jsr osnewl:plp
+ bmi wget_reread_ipd        \ jump if negative to read the new IPD
+ jsr read_ipd_end           \ check if block size is zero
+ bne wget_check_flags       \ if not zero then continue 
+.wget_reread_ipd
+ jsr wget_search_ipd        \ else search next IPD string
+ bcc wget_crd_end           \ end if no IPD string found 
+ jsr wget_read_ipd          \ read IPD (= number of bytes in datablok)
+ jsr wget_search_crlf       \ search end of response headers
+
  \ Check the header flags -A (ATM) and -P (Atom-in-PC or APC); the first has presendence when both are given.
+.wget_check_flags
  lda aflag                  \ test if ATM header option given
  bne wget_atm_header        \ jump if there's no -A flag
  lda pflag                  \ test if APC header option given
@@ -530,6 +548,9 @@
  jsr mul10                  \ multiply the IPD value by 10 and add the last value read
  jmp read_ipd_loop          \ repeat for next character
 .read_ipd_end
+; lda blocksize+1:jsr printhex
+; lda blocksize:jsr printhex
+; jsr osnewl
  lda blocksize+1            \ load blocksize+1
  ora blocksize              \ ora with blocksize
  rts                        \ return with Z flag indicating the IPD value (zero or non-zero)
