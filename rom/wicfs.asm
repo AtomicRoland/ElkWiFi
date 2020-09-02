@@ -1373,7 +1373,6 @@ __debug =   0       \print debug information
     lda pr_r
     sta pagereg
     lda pageram,y   \load data
-    sta &FC38       \write to serial A port just as an indicator that we get a byte
     pha             \save data
     iny             \increment pointer
     bne getbyte1    \jump if not end of page
@@ -1410,7 +1409,6 @@ __debug =   0       \print debug information
     lda pr_r
     sta pagereg
     lda pageram,y   \load data
-    sta &FC38       \write to serial A port just as an indicator that we get a byte
     pha             \save data
     jsr set_bank_0  \select first paged ram bank
     pla
