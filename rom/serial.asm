@@ -153,7 +153,7 @@ bank_save = save_a
 \ +IPD: marker and thus the start of the main data transfer. From that point on, the receiving routine
 \ uses the short time out counter.
 .uart_get_response
- sei                        \ disable interrupts
+ \ sei                        \ disable interrupts
  ldx #0                     \ reset buffer pointer
  stx pagereg
 .uart_get_resp_l1
@@ -190,9 +190,9 @@ bank_save = save_a
 \ Data stream has started. The time-out is here counted by the Y register. The next byte should arrive
 \ after 80 microseconds. This loop will be long enough to cover this time about 40 times.
 .uart_gr_read_start
- ldy #0                     \ load (very) short timer
  lda uart_rhr               \ read received data
 .uart_gr_read_l1
+ ldy #0                     \ load (very) short timer
  sta pageram,x              \ store in memory
  inx                        \ increment memory pointer
  bne uart_gr_read_l3
