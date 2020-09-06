@@ -1,10 +1,11 @@
 \ WGET command
-\ Syntax:    *WGET [-T | -X | -A | -P | -U] <url> [address]
+\ Syntax:    *WGET [-T | -X | -A | -P | -U | -S] <url> [address]
 \ Option:    -T        optional    print the downloaded file directly on the screen, newline by &0D
 \            -X        optional    print the downloaded file directly on the screen, newline by &0A
 \            -A        optional    the file has an ATM header
 \            -P        optional    the file has an Atom-in-PC header
 \            -U        optional    the file is a UEF file
+\            -S        optional    the file is a sideways rom, specify banknumber in address parameter
 \            url       required    the url of the file, including http(s)://
 \            address   optional    load address of the file
 \ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters since that option
@@ -12,10 +13,11 @@
 \ 
 \ (c) Roland Leurs, July 2020
 
-                proto = heap + &F6      \ 1 byte
-                newln = heap + &F7      \ 1 byte
-                clptr = heap + &F8      \ 1 byte
-                index = heap + &F9      \ 1 byte
+                proto = heap + &F5      \ 1 byte
+                newln = heap + &F6      \ 1 byte
+                clptr = heap + &F7      \ 1 byte
+                index = heap + &F8      \ 1 byte
+                sflag = heap + &F9      \ 1 byte
                 tflag = heap + &FA      \ 1 byte
                 aflag = heap + &FB      \ 1 byte
                 pflag = heap + &FC      \ 1 byte
@@ -25,6 +27,7 @@
 .wget_cmd                   \ start wget command
  lda #0                     \ initialize flags and address
  sta tflag
+ sta sflag
  sta aflag
  sta pflag
  sta uflag
@@ -40,7 +43,7 @@
  cpx #&00                   \ test if any parameter given, x will be > 0
  bne wget_read_params       \ continue if one parameter is on the command line
  jsr printtext              \ no parameter, print a message
- equs "Usage: WGET [-T | -X | -A | -P | -U] <url> [address]",&0D,&EA
+ equs "Usage: WGET [-TXAPUS] <url> [address]",&0D,&EA
  jmp call_claimed           \ end of command
 
 .wget_read_params
@@ -59,6 +62,8 @@
  beq wget_option_p          \ jump if P
  cmp #'u'                   \ check for U (UEF file)
  beq wget_option_u
+ cmp #'s'                   \ check for S (Sideway rom)
+ beq wget_option_s
  ldx #(error_bad_option-error_table)
  jmp error                  \ unrecognized option, throw an error
 
@@ -73,7 +78,7 @@
 .wget_option_a
  lda #1                     \ set flag to 1
  sta aflag 
- bne wget_l1                \ jump always
+ jmp wget_l1                \ jump always
 
 .wget_option_p
  lda #1                     \ set flag to 1
@@ -83,6 +88,11 @@
 .wget_option_u
  lda #1                     \ set flag to 1
  sta uflag
+ jmp wget_l1                \ jump always (branching is too far)
+
+.wget_option_s
+ lda #1                     \ set flag to 1
+ sta sflag
  jmp wget_l1                \ jump always (branching is too far)
 
 .wget_read_uri              \ the parameter is not an option switch, treat it like a url
@@ -322,7 +332,9 @@
 .wget_copy_received_data
  jsr reset_buffer           \ reset pointer to recieve buffer (PAM)
  jsr wget_search_ipd        \ search IPD string
- bcc wget_crd_end           \ end if no IPD string found 
+ bcs wget_crd_l0            \ jump if string found
+ jmp wget_crd_end           \ end if no IPD string found 
+.wget_crd_l0
  jsr wget_read_ipd          \ read IPD (= number of bytes in datablok)
  jsr wget_http_status       \ check for HTTP statuscode 200
  jsr wget_search_crlf       \ search for newline
@@ -360,23 +372,28 @@
  jsr wget_set_default_load  \ otherwise set the default load address (PAGE on Electron, ?#12 on Atom)
 .wget_set_load_addr_l1
  lda uflag                  \ is it an UEF file?
- beq wget_set_load_addr_l2  \ no, then jump to store the load address in zero page
+ beq wget_set_load_addr_l3  \ no, then jump to store the load address in zero page
+.wget_set_load_addr_l2
  ldy #0                     \ reset pointer to paged RAM
  sty pr_r                   \ set "second page register"
  sty pr_y
  sty sbufl                  \ reset tape length counter
  sty sbufh
  beq wget_crd_loop          \ jump always
-.wget_set_load_addr_l2
+.wget_set_load_addr_l3
+ lda sflag                  \ is it a SW ROM file?
+ bne wget_set_load_addr_l2  \ if so, treat it like an UEF file
  lda laddr                  \ copy load address to zero page
  sta load_addr
  lda laddr+1
  sta load_addr+1
 
 .wget_crd_loop              \ copy received data
- lda tflag                  \ check for T-flag (if set, dump data to screen)
+ lda tflag                  \ check for X or T-flag (if set, dump data to screen)
  bne wget_dump_data
  lda uflag                  \ check for U-flag (if set, keep data in paged RAM)
+ bne wget_read_uef_data 
+ lda sflag                  \ check for S-flag (if set, also keep data in paged RAM)
  bne wget_read_uef_data 
  jsr wget_read_http_data    \ read received data block
  jmp wget_crd_l1            \ jump for next block
@@ -391,7 +408,12 @@
  jmp wget_crd_loop          \ read this block
 .wget_crd_end
  
+ lda sflag                  \ test if ROM file
+ beq wget_crd_end_l1        \ jump if it's not a ROM file
+ jsr wget_copy_file_to_swr  \ go copy the loaded file into sideways RAM
+ jmp wget_close             \ goto the end of the routine
 \ Store tape length in paged RAM
+.wget_crd_end_l1
  lda uflag                  \ test if UEF file
  beq wget_close             \ it's not, jump
  jsr wget_context_switch_in
@@ -411,6 +433,8 @@
 
 \ Read an UEF file, in this version only non-compressed files are supported
 \ and copied directly into the second paged RAM bank
+\ Note to myself: this routine is also used for storing a sideways rom into
+\ paged memory. 
 .wget_read_uef_data
  jsr wget_test_end_of_data  \ test for end of data
  bcc wget_read_uef_end      \ jump if end of data is reached
@@ -741,3 +765,62 @@ endif
  jsr wifidriver             \ close connection to server
  ldx #(error_http_status-error_table)
  jmp error                  \ throw an error
+
+.wget_copy_file_to_swr      
+ ldy #(wget_swramload_end-wget_swramload)  \ load index
+.wget_copy_file_l1
+ lda wget_swramload,y       \ read byte from copy routine
+ sta heap,y                 \ copy to temporary workspace
+ dey                        \ decrement index
+ bpl wget_copy_file_l1      \ jump if not ready
+ jsr wget_context_switch_in \ select second ram page
+ jsr heap                   \ perform the copy action
+ jsr wget_context_switch_out\ select first ram page
+ rts                        \ end of routine
+
+.wget_swramload
+ lda #15
+ sta switch
+ lda laddr        ; load RAM socket
+ and #&0F         ; MASK HIGH NIBBLE
+ sta switch       ; select sideways RAM 
+
+\ Do your copy stuff here. This routine is copied outside of the ROM
+\ and then called. 
+ sei
+ ldx #&00      
+ stx pagereg
+ stx zp+2
+ lda #&80
+ sta zp+3
+ lda #&40
+ sta zp+4
+ ldy #0
+.wget_swramload_l1
+ lda pageram,x
+ sta (zp+2),y
+ cmp (zp+2),y
+ bne wget_swramload_err
+ inx
+ iny
+ bne wget_swramload_l1
+ inc pagereg
+ inc zp+3
+ dec zp+4
+ bne wget_swramload_l1
+
+ lda shadow      ; RESTORE ROM
+ sta switch
+ cli
+ rts
+
+.wget_swramload_err
+ lda shadow      ; RESTORE ROM
+ sta switch
+ cli
+ brk
+ equb 0
+ equs "Not swram",&00
+
+.wget_swramload_end
+
