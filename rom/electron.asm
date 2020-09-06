@@ -24,6 +24,9 @@
             osasci = &FFE3
             osbyte = &FFF4
             osnewl = &FFE7
+            switch = &FE05
+            shadow = &F4
+
             line = &F2              \ address for command line pointer
             zp = &B0                \ workspace            
 
