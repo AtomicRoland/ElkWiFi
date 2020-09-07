@@ -24,7 +24,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity cpld is
    generic(
       clk_freq : integer := 625;   -- input frequency
-      freq     : integer := 72     -- desired output frequency
+      freq     : integer := 144    -- desired output frequency
    );
 
    port(
@@ -85,14 +85,21 @@ begin
             if ( accumulator + increment >= 0) then
                accumulator <= accumulator + increment;
                phase_change <= not phase_change;
-               clk_uart <= phase_change;
-               clk18 <= phase_change;
+               if madet = '0' then
+                   -- Master, base clock is 8MHz
+                   clk18 <= phase_change;
+               else
+                   -- Electron, base clock is 16MHz, so half output clock
+                   clk18 <= phase_change xor clk18;
+               end if;
             else
                accumulator <= accumulator + to_signed(freq * 2, 10);    --- This line changed
             end if;
          end if;
       end if;
    end process;
+
+   clk_uart <= clk18;
 
    -- Chip Control logic
    process(nPGFC, A, PH12, ERnW, MRnW, madet, nROMOE, ROMQA, reset_in, wifi_disable)
