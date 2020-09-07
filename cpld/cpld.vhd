@@ -1,20 +1,20 @@
 ----------------------------------------------------------------------------------
 -- Company:        StarDot Community
 -- Engineer:       Roland Leurs
--- 
--- Create Date:    16:11:13 04/27/2020 
--- Design Name: 
--- Module Name:    cpld - Behavioral 
+--
+-- Create Date:    16:11:13 04/27/2020
+-- Design Name:
+-- Module Name:    cpld - Behavioral
 -- Project Name:   Elk - WiFi
 -- Target Devices: XC9572XL
--- Tool versions: 
--- Description:    
+-- Tool versions:
+-- Description:
 --
--- Dependencies: 
+-- Dependencies:
 --
--- Revision: 
+-- Revision:
 -- Revision 0.01 - File Created
--- Additional Comments: 
+-- Additional Comments:
 --
 ----------------------------------------------------------------------------------
 library IEEE;
@@ -42,7 +42,7 @@ entity cpld is
       tx_b     : in  std_logic;  -- TX port B
       rx_b     : in  std_logic;  -- RX port B
       reset_in : in  std_logic;  -- Reset signal
-      
+
       cs_uart  : out std_logic;  -- UART enable
       cs_rom   : out std_logic;  -- EEPROM enable
       cs_pareg : out std_logic;  -- Page Register enable
@@ -62,7 +62,7 @@ architecture Behavioral of cpld is
    constant increment  : integer := (freq*2)-clk_freq;
    signal accumulator  : signed(10 downto 0);
    signal phase_change : std_logic := '0';
-   
+
    type  clkCounter is range 0 to 200000;
    signal clk18        : STD_LOGIC;
    signal hz10, hz10_1 : STD_LOGIC;
@@ -77,7 +77,7 @@ begin
    -- https://gist.github.com/RickKimball/45d0753a900f92d5fdd836746062588c
    process(clk_in, reset_in)
    begin
-      if (reset_in = '0') then 
+      if (reset_in = '0') then
          accumulator <= to_signed(0,11);
          phase_change <= '0';
       else
@@ -93,32 +93,32 @@ begin
          end if;
       end if;
    end process;
-   
+
    -- Chip Control logic
    process(nPGFC, A, PH12, ERnW, MRnW, madet, nROMOE, ROMQA, reset_in, wifi_disable)
-   begin 
+   begin
       -- Platform independant control logic
       -- Enable UART at &FC3x
       -- and &FCFF (paged ram register)
       if nPGFC = '0' and (A(7 downto 4) = "0011" or A(7 downto 0) = "11111111") then
          cs_uart <= '0';
-      else 
+      else
          cs_uart <= '1';
       end if;
       -- Enable ROM
       if nROMOE = '0' then
          cs_rom <= '0';
-      else 
+      else
          cs_rom <= '1';
       end if;
       -- Inverted reset for the UART
       -- but only when wifi is not disabled
       if wifi_disable = '0' then
          reset_out <= not reset_in;
-      else 
+      else
          reset_out <= '0';
       end if;
-      
+
       -- Platform dependant control logic
       if madet = '1' then -- Electron control logic
          -- Enable Paged Ram Register when writing to &FCFF
@@ -138,7 +138,7 @@ begin
          else
             IOW <= '1';
          end if;
-         -- Set/reset wifi_disable by writing to the LSR-B (&FC35) and 
+         -- Set/reset wifi_disable by writing to the LSR-B (&FC35) and
          -- MSR-B (&FC36) registers
          if rising_edge(ph12) then
             if nPGFC = '0' and (A(7 downto 1) = "0011010" or A(7 downto 1) = "0011011") and ERnW = '0' then
@@ -162,7 +162,7 @@ begin
          else
             IOW <= '1';
          end if;
-         -- Set/reset wifi_disable by writing to the LSR-B (&FC35) and 
+         -- Set/reset wifi_disable by writing to the LSR-B (&FC35) and
          -- MSR-B (&FC36) registers
          if rising_edge(ph12) then
             if nPGFC = '0' and (A(7 downto 1) = "0011010" or A(7 downto 1) = "0011011") and MRnW = '0' then
@@ -171,7 +171,7 @@ begin
          end if;
       end if;
    end process;
-   
+
    -- LED Control
    process(clk18)
 	variable hz10Cnt : clkCounter := 0;
@@ -199,7 +199,7 @@ begin
          if rx_a = '0' then
             trigger_rx_a <= '1';
          end if;
-         
+
          -- detection of rising edge on 10hz signal
          if hz10_1 = '0' and hz10 = '1' then
             led_rx_a <= not trigger_rx_a;
@@ -214,7 +214,7 @@ begin
          if tx_a = '0' then
             trigger_tx_a <= '1';
          end if;
-         
+
          -- detection of rising edge on 10hz signal
          if hz10_1 = '0' and hz10 = '1' then
             led_tx_a <= not trigger_tx_a;
@@ -229,7 +229,7 @@ begin
          if rx_b = '0' then
             trigger_rx_b <= '1';
          end if;
-         
+
          -- detection of rising edge on 10hz signal
          if hz10_1 = '0' and hz10 = '1' then
             led_rx_b <= not trigger_rx_b;
@@ -244,7 +244,7 @@ begin
          if tx_b = '0' then
             trigger_tx_b <= '1';
          end if;
-         
+
          -- detection of rising edge on 10hz signal
          if hz10_1 = '0' and hz10 = '1' then
             led_tx_b <= not trigger_tx_b;
@@ -255,5 +255,5 @@ begin
 
    -- Simple level shifting
    rx_esp <= tx_b;
-   
+
 end Behavioral;
