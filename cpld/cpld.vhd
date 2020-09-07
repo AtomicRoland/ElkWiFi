@@ -106,7 +106,7 @@ begin
          cs_uart <= '1';
       end if;
       -- Enable ROM
-      if nROMOE = '0' then
+      if nROMOE = '0' and (madet = '1' or ERnW = '1') then
          cs_rom <= '0';
       else
          cs_rom <= '1';
