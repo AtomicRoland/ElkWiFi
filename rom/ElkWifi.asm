@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.17"                 \ Rom version string
+.romversion         equs "0.18"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2020 Roland Leurs"
                     equb 0
@@ -160,6 +160,8 @@ include "electron.asm"
 
 .commandtable       equs "WGET"
                     equb >wget_cmd, <wget_cmd
+                    equs "MENU"
+                    equb >menu_cmd, <menu_cmd
                     equs "WIFI" 
                     equb >wifi_cmd, <wifi_cmd 
                     equs "VERSION"
@@ -272,6 +274,7 @@ include "mode.asm"
 include "update.asm"
 include "wicfs.asm"
 include "wget.asm"
+include "menu.asm"
 
 equs "This is the end!"
 

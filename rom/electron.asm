@@ -24,6 +24,7 @@
             osasci = &FFE3
             osbyte = &FFF4
             osnewl = &FFE7
+            oscli  = &FFF7
             switch = &FE05
             shadow = &F4
 
