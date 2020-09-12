@@ -18,6 +18,9 @@ equs "80",&0d,&00
 .update_httpget
 equs "GET /wifi/elkwifi-latest.bin HTTP/1.1",&0d,&0a
 equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
+.update_wget
+equs "*WGET -X HTTP://ACORNELECTRON.NL/wifi/elkwifi-release.txt",&0D
+
 
 .downloadupdate
  lda #8                         \ open tcp connection to server
@@ -67,7 +70,27 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  lda #13                        \ send http get command
  jmp wifidriver
 
-.update_cmd                     \ Time command
+.update_cmd                     \ Update command
+ jsr skipspace1                 \ forward Y pointer to first non-space character
+ jsr read_cli_param             \ read first parameter from command line
+ cpx #&00                       \ test if any parameter given, x will be > 0
+ beq update_start               \ continue if there are no parameters
+
+ lda strbuf                     \ read first character of the parameter
+ cmp #'-'                       \ check for a dash
+ bne update_start               \ if not then start with the update
+ lda strbuf+1                   \ read option
+ ora #&20                       \ convert lower case
+ cmp #'r'                       \ is it an r  (for Release notes)
+ beq update_relnotes            \ yes, show the release notes
+ ldx #(error_bad_option-error_table)
+ jmp error                      \ unrecognized option, throw an error
+
+.update_relnotes
+ jsr update_show_relnotes       \ show the release notes
+ jmp call_claimed               \ end the command
+
+.update_start
  jsr checkupdate                \ Get latest version number
  \ process the response from server
  jsr reset_buffer               \ reset buffer register and pointer
@@ -105,12 +128,22 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
 .update_found
  jsr printtext                  \ print message
  equs "There is an update available.", &0D
- equs "Do you want to install it (y/N)? ",&EA
+ equs "Do you want to install it (y/R/N)? ",&EA
  jsr osrdch                     \ read character from keyboard
+ pha                            \ save the character
+ jsr osasci                     \ print it
+ pla                            \ restore it
  cmp #'y'                       \ compare to lower case Y
- bne update_cancelled
+ beq update_y
+ ora #&20                       \ convert lower case
+ cmp #'r'                       \ check for viewing release notes
+ bne update_cancelled           \ not R, then cancel the update
+ jsr osnewl                     \ it looks better on a new line
+ jsr update_show_relnotes       \ show release notes
+ jmp update_found               \ and ask again if the update must be installed
 
 \ Store received CRC
+.update_y
  lda #<crcstr                   \ load address of string to search
  sta needle                     \ and store it in workspace
  lda #>crcstr
@@ -118,7 +151,9 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  lda #4
  sta size
  jsr fnd
- bcc update_error
+ bcs update_y2
+ jmp update_error
+.update_y2
  jsr update_store_crc
 
  jsr printtext
@@ -194,4 +229,12 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
 .update_crc_error
  ldx #(error_bad_crc-error_table)
  jmp error
+
+.update_show_relnotes
+ lda #14                    \ disconnect from server
+ jsr wifidriver
+ ldx #<update_wget          \ load pointer to command string
+ ldy #>update_wget
+ jmp oscli                  \ pass the command to the CLI and return to calling routine
+
 
