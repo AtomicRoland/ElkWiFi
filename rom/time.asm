@@ -14,11 +14,11 @@
  
 .date_time_host
 equs "TCP",&0d
-equs "www.acornatom.nl",&0d
+equs "www.acornelectron.nl",&0d
 equs "80",&0d,&00
 .date_time_httpget
-equs "GET /atomwifi/time.php HTTP/1.1",&0d,&0a
-equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
+equs "GET /wifi/time.php HTTP/1.1",&0d,&0a
+equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  
 .date_time
  lda #8                         \ open tcp connection to server

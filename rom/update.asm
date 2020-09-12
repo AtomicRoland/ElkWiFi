@@ -13,11 +13,11 @@
  
 .update_host
 equs "TCP",&0d
-equs "www.acornatom.nl",&0d
+equs "www.acornelectron.nl",&0d
 equs "80",&0d,&00
 .update_httpget
-equs "GET /atomwifi/elkwifi-latest.bin HTTP/1.1",&0d,&0a
-equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
+equs "GET /wifi/elkwifi-latest.bin HTTP/1.1",&0d,&0a
+equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
 
 .downloadupdate
  lda #8                         \ open tcp connection to server
@@ -42,8 +42,8 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  jmp wifidriver
 
  .version_httpget
-equs "GET /atomwifi/elkwifi-version.txt HTTP/1.1",&0d,&0a
-equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
+equs "GET /wifi/elkwifi-version.txt HTTP/1.1",&0d,&0a
+equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  
 .checkupdate
  lda #8                         \ open tcp connection to server
@@ -165,10 +165,6 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  lda crc+1
  cmp servercrc+1
  bne update_crc_error
-
- jsr printtext
- equs "OK",&0D,&EA
- jmp call_claimed
 
  lda #&FE                   \ load driver function number
  ldx #&02                   \ load rom bank number in EEPROM
