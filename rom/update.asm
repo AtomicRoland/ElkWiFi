@@ -127,6 +127,10 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  lda #14                        \ close the connection before opening it again
  jsr wifidriver
  jsr downloadupdate             \ download the updated ROM image
+ stx datalen                    \ store end of data block
+ lda pagereg
+ sta datalen+1
+
  
  lda #&00                       \ set load address to &2000
  sta load_addr
@@ -161,6 +165,10 @@ equs "HOST: www.acornatom.nl",&0d,&0a,&0d,&0a
  lda crc+1
  cmp servercrc+1
  bne update_crc_error
+
+ jsr printtext
+ equs "OK",&0D,&EA
+ jmp call_claimed
 
  lda #&FE                   \ load driver function number
  ldx #&02                   \ load rom bank number in EEPROM
