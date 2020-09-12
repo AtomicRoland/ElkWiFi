@@ -503,8 +503,19 @@ __debug =   0       \print debug information
 	BCS	stl_nf		\exit immediately on skip error
 	JMP	stl_a2		\and loop for next chunk
 
-.stl_end	JSR	lastblk		\process last block output
-	LDA	#1		\flag file found to OS
+.stl_end
+	JSR	lastblk		\process last block output
+
+\ Set break type to 3 after loading a locked file. Elk CFS does this
+\ and some games (like Arcadians) need it to run properly.
+    LDA &3CA		\ load last block byte
+    AND #&01		\ test for locked file
+    BEQ stl_e1	    \ if zero then not locked so jump
+    LDA #3		    \ load break type
+    STA &0258	    \ store in memory
+.stl_e1	
+
+	LDA	#1		    \flag file found to OS
 	BNE	stl_x
 
 .stl_nf	LDA	#0		\flag file not found to OS
