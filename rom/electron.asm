@@ -28,6 +28,10 @@
             switch = &FE05
             shadow = &F4
 
+            uptvec = &222           \ User Print Vector
+            uptype = &D9C           \ User Printer Type
+            uptsav = &D9D           \ Save old uptvec
+
             line = &F2              \ address for command line pointer
             zp = &B0                \ workspace            
 
