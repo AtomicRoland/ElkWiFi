@@ -349,4 +349,14 @@ endif
  LDA datalen+1:BNE bytelp           :\ Loop until num=0
  RTS
 
+.save_registers                     \ save registers
+ sta save_a
+ stx save_x
+ sty save_y
+ rts
 
+.restore_registers                  \ restore registers
+ lda save_a
+ ldx save_x
+ ldy save_y
+ rts

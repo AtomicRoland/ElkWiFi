@@ -271,3 +271,17 @@ bank_save = save_a
  and #&01           \ test lowest bit (DTR)
  rts                \ return
 
+\ Setup the serial port A
+\ Parameters in ZP+6 and up: baudrate, parity, databits, stopbits
+.serial_setup_a
+ lda baudrate+2 : jsr printhex
+ lda baudrate+1 : jsr printhex
+ lda baudrate : jsr printhex
+ lda #' ' : jsr oswrch
+ lda parity : jsr printhex
+ lda #' ' : jsr oswrch
+ lda databits : jsr printhex
+ lda #' ' : jsr oswrch
+ lda stopbits : jsr printhex
+ jsr osnewl
+ rts    

@@ -193,6 +193,8 @@ include "electron.asm"
                     equb >wget_close, <wget_close
                     equs "PRINTER"
                     equb >printer_cmd, <printer_cmd
+                    equs "SETSERIAL"
+                    equb >setserial_cmd, <setserial_cmd
                     equs "WICFS"
                     equb >wicfs_cmd, <wicfs_cmd
                     equs "REWIND"

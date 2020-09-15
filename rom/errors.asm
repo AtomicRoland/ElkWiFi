@@ -31,11 +31,12 @@
 .error_no_date_time         equs "No date/time received",&0D
 .error_no_version           equs "No version received",&0D
 .error_not_implemented      equs "Not implemented",&0D
-.error_bad_option           equs "Unrecognized option",&0D
-.error_bad_protocol         equs "Unsupported protocol",&0D
+.error_bad_option           equs "Unknown option",&0D
+.error_bad_protocol         equs "Unknown protocol",&0D
 .error_http_status          equs "HTTP error",&0D
-.error_no_pagedram          equs "No paged ram found",&0D
+.error_no_pagedram          equs "No paged ram",&0D
 .error_disabled             equs "Wifi is disabled",&0D
-.error_opencon              equs "Connection error",&0D
-.error_bad_crc              equs "CRC error, update aborted",&0D
+.error_opencon              equs "Connect error",&0D
+.error_bad_crc              equs "CRC error, aborted",&0D
+.error_bad_param            equs "Wrong parameter",&0D
 \ Let op: de error tabel is vol (256 bytes) !

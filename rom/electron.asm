@@ -45,6 +45,11 @@
             blocksize = zp+6
             load_addr = zp+8
 
+            baudrate = zp+6         \ must be the same as blocksize because of MUL10 routine
+            parity   = zp+9
+            databits = zp+10
+            stopbits = zp+11
+
 			buffer_ptr = zp+9       \ buffer_ptr and data_pointer must be adjescent!
 			data_pointer = zp+11    \ a.k.a. data length
             size = zp+11            \ indeed, same as data_pointer

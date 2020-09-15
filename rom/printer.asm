@@ -101,9 +101,7 @@
 .uptvector                  \ the new vector
  cpy #printer_ID            \ compare with our printer ID
  bne uptvector_end1         \ jump if it's not our printer
- sta save_a                 \ save registers
- stx save_x
- sty save_y
+ jsr save_registers         \ save registers
 
  asl a                      \ multiply A by 2
  tax                        \ transfer to X register
@@ -115,9 +113,7 @@
  jsr printerfunction        \ execute the printer function
 
 .uptvector_end
- ldy save_y                 \ restore registers
- ldx save_x
- lda save_a
+ jsr restore_registers      \ restore registers
 .uptvector_end1
  jmp (uptsav)               \ jump to the old vector
 
@@ -188,6 +184,12 @@
 .printer_serial_setup
  lda #1                     \ load printer type serial
  sta uptype                 \ store in memory
+ ldx #1                     \ set pointer to strbuf (first character was the 'S')
+ lda strbuf,x               \ load character
+ cmp #':'                   \ check for colon
+ bne printer_syntax         \ jump if no colon 
+ jsr parse_serial_params    \ read the serial settings
+ jsr serial_setup_a         \ set up port A of the uart
  rts
 
 .printer_network_setup
@@ -201,4 +203,128 @@
  equs "        *PRINTER N:hostname,port",&0D
  equs "        *PRINTER OFF",&0D,&EA
  rts
+
+.bad_option_error
+ ldx #(error_bad_param-error_table)
+ jmp error
+
+\ The next routine parses the command line and places the values to ZP and up
+\ Syntax: baudrate (integer), parity (O,E,N) ,databits (7 or 8), stopbits (1 or 2)
+\ any fault in one of these parameters will throw a "bad parameter" error
+.parse_serial_params
+ inx                        \ increment pointer to strbuf
+ lda #0                     \ reset baud rate
+ sta baudrate
+ sta baudrate+1
+ sta baudrate+2
+.parse_baudrate
+ lda strbuf,x               \ load character
+ inx                        \ increment pointer
+ beq bad_option_error       \ way too long parameter, error
+ cmp #','                   \ test for end of baudrate
+ beq parse_parity           \ jump if comma found
+ cmp #&0D                   \ test for end of parameters
+ beq printer_syntax         \ print syntax
+ sec                        \ set carry for substraction
+ sbc #'0'                   \ substract &30
+ bmi bad_option_error       \ jump if negative
+ cmp #10                    \ test for 9, looks silly doesn't it?
+ bpl bad_option_error       \ jmp if larger than 9       
+ jsr mul10                  \ multiply by 10 and add A to baudrate 
+ jmp parse_baudrate         \ go for the next digit
+
+.parse_parity
+ lda strbuf,x               \ load character
+ cmp #'O'                   \ test for 'O'
+ beq parse_parity_odd
+ cmp #'E'                   \ test for 'E'
+ beq parse_parity_even
+ cmp #'N'                   \ test for 'N'
+ beq parse_parity_none
+ cmp #'1'                   \ test for '1'
+ beq parse_parity_mark 
+ cmp #'0'                   \ test for '0'
+ beq parse_parity_space
+ jmp bad_option_error       \ none of these options, so it's a bad parameter
+
+.parse_parity_none           
+ lda #0                     \ load parity value
+ beq parse_parity_set       \ jump always
+
+.parse_parity_even
+ lda #&18                   \ load parity value
+ bne parse_parity_set       \ jump always
+
+.parse_parity_odd
+ lda #&08                   \ load parity value
+ bne parse_parity_set       \ jump always
+
+.parse_parity_mark
+ lda #&28                   \ load parity value
+ bne parse_parity_set       \ jump always
+
+.parse_parity_space
+ lda #&38                   \ load parity value
+ bne parse_parity_set       \ jump always
+
+.parse_parity_set
+ sta parity                 \ set parity value
+ inx                        \ increment pointer to strbuf
+ lda strbuf,x               \ load next character
+ cmp #','                   \ it must be a comma
+ beq parse_databits         \ go and parse the word length
+.parse_parity_error
+ jmp bad_option_error       \ else throw an error
+
+.parse_databits
+ inx                        \ increment pointer to strbuf
+ lda strbuf,x               \ load next character
+ cmp #'5'                   \ compare to '5'
+ bmi parse_parity_error     \ jump if smaller
+ cmp #'9'                   \ compare to '8'
+ bpl parse_parity_error     \ jump if larger
+ sec                        \ set carry for subtraction
+ sbc #'5'                   \ substract '5'
+ sta databits               \ store the result
+ inx                        \ increment pointer to strbuf
+ lda strbuf,x               \ load next character
+ cmp #','                   \ it must be a comma
+ bne parse_parity_error     \ if not then throw an error
+
+.parse_stopbits
+ inx                        \ increment pointer to strbuf
+ lda strbuf,x               \ load character
+ cmp #'1'                   \ test for '1'
+ beq parse_set_stopbit 
+ cmp #'2'                   \ test for '2'
+ beq parse_set_stopbit
+ jmp bad_option_error       \ none of these options, so it's a bad parameter
+
+.parse_set_stopbit
+ and #&02                   \ just interested in bit 1
+ asl a                      \ shift bit 1 into bit 2
+ sta stopbits               \ set stop bits
+
+ inx                        \ increment pointer to strbuf
+ lda strbuf,x               \ load character
+ cmp #&0D                   \ this should be the end of the string
+ beq parse_end
+ jmp bad_option_error       \ else throw an error
+
+.parse_end
+ rts                        \ return
+
+.setserial_cmd              \ serial port A setup
+ jsr skipspace1             \ read first character on command line
+ jsr read_cli_param         \ read first parameter from command line
+ cpx #0                     \ test if any parameters
+ bne setserial_l1
+ jsr printtext              \ print syntax:
+ equb "Syntax: *SETSERIAL baud,par,data,stop",&0D, &EA
+ rts
+.setserial_l1
+ ldx #&FF                   \ load pointer to strbuf
+ jsr parse_serial_params    \ read serial parameters
+ jsr serial_setup_a         \ setup serial port
+ jmp call_claimed           \ end of command
 

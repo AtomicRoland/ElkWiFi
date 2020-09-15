@@ -585,11 +585,14 @@
  asl blocksize
  lda blocksize
  rol blocksize+1
+ rol blocksize+2
  ldy blocksize+1
  asl blocksize
  rol blocksize+1
+ rol blocksize+2
  asl blocksize
- rol blocksize+1 
+ rol blocksize+1
+ rol blocksize+2 
  clc
  adc blocksize
  sta blocksize
