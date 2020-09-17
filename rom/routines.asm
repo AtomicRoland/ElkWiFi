@@ -360,3 +360,38 @@ endif
  ldx save_x
  ldy save_y
  rts
+
+\ Calculates  DIVEND / DIVSOR = RESULT	
+.div16
+ divisor = zp+6                     \ just to make the code more human readable
+ dividend = zp                    \ what a coincidence .... this is the address of baudrate
+ remainder = zp+2                   \ not necessary, but it's calculated
+ result = dividend                  \ more readability
+
+ lda #0	                            \ reset remainder
+ sta remainder
+ sta remainder+1
+ ldx #16	                        \ the number of bits
+
+.div16loop	
+ asl dividend	                    \ dividend lb & hb*2, msb to carry
+ rol dividend+1	
+ rol remainder	                    \ remainder lb & hb * 2 + msb from carry
+ rol remainder+1
+ lda remainder
+ sec                                \ set carry for substraction
+ sbc divisor	                    \ substract divisor to see if it fits in
+ tay	                            \ lb result -> Y, for we may need it later
+ lda remainder+1
+ sbc divisor+1
+ bcc div16skip	                    \ if carry=0 then divisor didn't fit in yet
+
+ sta remainder+1	                \ else save substraction result as new remainder,
+ sty remainder	
+ inc result	                        \ and INCrement result cause divisor fit in 1 times
+
+.div16skip
+ dex
+ bne div16loop	
+ rts                                \ do you understand it? I don't ;-)
+

@@ -209,7 +209,7 @@
  jmp error
 
 \ The next routine parses the command line and places the values to ZP and up
-\ Syntax: baudrate (integer), parity (O,E,N) ,databits (7 or 8), stopbits (1 or 2)
+\ Syntax: baudrate (integer), parity (O,E,N,1,0) ,databits (7 or 8), stopbits (1 or 2)
 \ any fault in one of these parameters will throw a "bad parameter" error
 .parse_serial_params
  inx                        \ increment pointer to strbuf

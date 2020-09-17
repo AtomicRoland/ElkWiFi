@@ -43,7 +43,7 @@
 
 			data_counter = zp+6
             blocksize = zp+6
-            load_addr = zp+8
+            load_addr = zp+9
 
             baudrate = zp+6         \ must be the same as blocksize because of MUL10 routine
             parity   = zp+9
