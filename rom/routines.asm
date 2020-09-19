@@ -395,3 +395,15 @@ endif
  bne div16loop	
  rts                                \ do you understand it? I don't ;-)
 
+.wait_a_second                      \ wait a second....
+ ldx #75                            \ load counter
+.was1
+ txa
+ pha
+ lda #&13
+ jsr osbyte
+ pla
+ tax
+ dex                                \ decrement counter
+ bne was1                           \ jump if not ready
+ rts                                \ return

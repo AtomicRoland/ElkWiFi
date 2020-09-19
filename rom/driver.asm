@@ -25,7 +25,7 @@
  \ 24 disable/enable
  \ 25 cwlapopt
  \ 26 sslbufsize
-
+ \ 27 cipmode
 
 
  sta save_a                 \ save registers
@@ -95,7 +95,7 @@
  equw disable_enable
  equw cwlapopt
  equw sslbufsize
- equw reserved
+ equw cipmode
  equw reserved
  equw reserved
  equw reserved
@@ -212,12 +212,19 @@
  jsr send_command
  equs "AT+CWMODE",&00
  ldy #0
+.cwmode_lbl1
  lda (paramblok),y
  beq cwjap_query
  lda #'='
  jsr send_byte
  bne last_param
  
+.cipmode \ transfer mode
+ jsr send_command
+ equs "AT+CIPMODE",&00
+ ldy #0
+ beq cwmode_lbl1
+
 .cipstart \ set up tcp or udp connection
  \ x = hi byte param block, y=low byte param block
  lda #16                    \ set long time out since DNS might take a while to time out

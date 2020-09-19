@@ -131,6 +131,9 @@
  equb <printer4, >printer4
  equb <printer5, >printer5
 
+.cipmode0   equb '0',&0D
+.cipmode1   equb '1',&0D
+
 .printer0                   \ fetch character from buffer and print it
  clv                        \ clear overflow flag (we want to pull a byte from the buffer)
  jsr osremv                 \ read byte from the printer buffer
@@ -153,9 +156,33 @@
  rts                        \ return
  
 
-.printer2                   \ vdu 2 received, ignored
+.printer2                   \ vdu 2 received: connect to printer
+ ldx #>netprt               \ load high byte printer address into X
+ ldy #<netprt               \ load low byte printer address into Y
+ lda #&08                   \ load function number
+ jsr wifidriver             \ open TCP connection to printer
+ ldx #>cipmode1             \ load high byte transfer mode 1
+ ldy #<cipmode1             \ load low byte transfer mode 1
+ lda #27                    \ load function number
+ jsr wifidriver             \ call the driver to start pass-through transfer mode)
+ jsr send_command
+ equs "AT+CIPSEND",&0D,&EA
+ rts                        \ end routine
 
 .printer3                   \ vdu 3 received, ignored
+ lda #'+'                   \ send three plus signs to end pass-through mode
+ jsr send_byte
+ jsr send_byte
+ jsr send_byte
+ jsr send_crlf              \ terminate the three plus command
+ jsr wait_a_second          \ guess what it does now....?
+ ldx #>cipmode0             \ load high byte  transfer mode 0
+ ldy #<cipmode0             \ load low byte  transfer mode 0
+ lda #27                    \ load function number
+ jsr wifidriver             \ call the driver to restore normal transfer mode
+ lda #14                    \ load function number
+ jsr wifidriver             \ disconnect the printer
+ rts                        \ end of routine
 
 .printer4                   \ not specified, ignored
  
@@ -179,7 +206,8 @@
 
 .send_network_printer
  pla
- rts                        \ not implemented yet
+ jsr send_byte              \ send to printer
+ rts                        \ it's not more than that :-)
 
 .printer_serial_setup
  lda #1                     \ load printer type serial
@@ -195,12 +223,17 @@
 .printer_network_setup
  lda #2                     \ load printer type serial
  sta uptype                 \ store in memory
+ ldx #1                     \ set pointer to strbuf (first character was the 'N')
+ lda strbuf,x               \ load character
+ cmp #':'                   \ check for colon
+ bne printer_syntax         \ jump if no colon 
+ jsr parse_net_params       \ read the IP settings
  rts
 
 .printer_syntax 
  jsr printtext
  equs "Syntax: *PRINTER S:baud,par,data,stop",&0D
- equs "        *PRINTER N:hostname,port",&0D
+ equs "        *PRINTER N:hostname",&0D
  equs "        *PRINTER OFF",&0D,&EA
  rts
 
@@ -328,3 +361,43 @@
  jsr serial_setup_a         \ setup serial port
  jmp call_claimed           \ end of command
 
+.parse_net_params
+ inx                        \ increment X (still pointing to the colon)
+ ldy #0                     \ reset index
+.parse_net_0
+ lda protocols,y            \ load character from protocol (defined in wget.asm)
+ sta netprt,y               \ store in workspace
+ iny                        \ increment index
+ cmp #&0D                   \ test for end of protol
+ bne parse_net_0            \ jump if more characters follow
+.parse_net_1
+ lda strbuf,x               \ load next character
+ sta netprt,y               \ store in workspace
+ inx                        \ increment pointers
+ beq parse_net_3            \ if no more characters then throw error
+ iny
+ cpy #32                    \ maximum length
+ beq parse_net_3            \ if maximum then throw error
+ cmp #' '                   \ test for space
+ beq parse_net_2            \ consider a space as the last character
+ cmp #&0D                   \ test for end of line
+ bne parse_net_1            \ if not then go for next character
+.parse_net_2 
+ lda #&0D                   \ load string terminator
+ sta netprt-1,y             \ close string (just in case the terminator was a space)
+ lda #'9'                   \ store port number (9100) in workspace
+ sta netprt,y
+ iny
+ lda #'1'
+ sta netprt,y
+ iny
+ lda #'0'
+ sta netprt,y
+ iny
+ sta netprt,y
+ iny
+ lda #&0D
+ sta netprt,y
+ rts                        \ return
+.parse_net_3
+ jmp bad_option_error       \ go to error routine
