@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.21"                 \ Rom version string
+.romversion         equs "0.22"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2020 Roland Leurs"
                     equb 0
@@ -181,7 +181,9 @@ include "electron.asm"
                     equs "JOIN"
                     equb >join_cmd, <join_cmd
                     equs "LEAVE"
-                    equb >leave_cmd, <leave_cmd
+                    equb >join_cmd, <join_cmd
+                    equs "PING"
+                    equb >ping_cmd, <ping_cmd
                     equs "MODE"
                     equb >mode_cmd, <mode_cmd
                     equs "UPDATE"
@@ -220,8 +222,10 @@ include "electron.asm"
                     equs " JOIN      Join a network",&0D
                     equs " LAP       List access points",&0D
                     equs " LAPOPT    Set LAP options",&0D
-                    equs " LEAVE     Disconnect from network",&0D   
+                    equs " LEAVE     Disconnect from network",&0D
+                    equs " MENU      start the menu program",&0D   
                     equs " MODE      Set device mode",&0D
+                    equs " PING      ping a host on network",&0D
                     equs " PRD       Paged Ram Dump",&0D
                     equs " TIME      Print current time",&0D
                     equs " UPDATE    Install ElkWifi ROM update",&0D
@@ -275,6 +279,7 @@ include "update.asm"
 include "wicfs.asm"
 include "wget.asm"
 include "menu.asm"
+include "ping.asm"
 
 equs "This is the end!"
 

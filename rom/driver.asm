@@ -25,7 +25,7 @@
  \ 24 disable/enable
  \ 25 cwlapopt
  \ 26 sslbufsize
-
+ \ 28 ping
 
 
  sta save_a                 \ save registers
@@ -96,7 +96,7 @@
  equw cwlapopt
  equw sslbufsize
  equw reserved
- equw reserved
+ equw ping
  equw reserved
  equw reserved
  equw reserved
@@ -652,3 +652,13 @@ rts
  ldy save_y             \ restore start address of data
  jmp flashcode          \ start flashing
 
+.ping
+ lda #8                 \ set time out
+ sta time_out
+ jsr send_command
+ equs "AT+PING=",&00
+ ldy #0
+ jsr send_param_quoted
+ jsr send_crlf
+ jmp read_response
+ 

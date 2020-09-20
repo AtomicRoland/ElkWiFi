@@ -8,7 +8,7 @@
  cpx #&00                   \ test if ssid given, x will be > 0
  bne mode_init_heap         \ continue as the ssid is on the command line
  jsr printtext              \ no ssid, print a message
- equs "Usage: MODE <1..3>",&0D
+ equs "Usage: *MODE <1..3>",&0D
  equs "MODE 1 -> STATION",&0D
  equs "MODE 2 -> ACCESS POINT",&0D
  equs "MODE 3 -> BOTH",&0D,&EA
