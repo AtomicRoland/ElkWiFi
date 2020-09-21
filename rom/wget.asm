@@ -563,6 +563,7 @@
  lda #0                     \ reset block size
  sta blocksize
  sta blocksize+1
+ sta blocksize+2
 .read_ipd_loop
  jsr read_buffer            \ read character from input buffer
  cmp #':'                   \ test for end of IPD string
@@ -585,17 +586,23 @@
  asl blocksize
  lda blocksize
  rol blocksize+1
+ rol blocksize+2
  ldy blocksize+1
  asl blocksize
  rol blocksize+1
+ rol blocksize+2
  asl blocksize
- rol blocksize+1 
+ rol blocksize+1
+ rol blocksize+2 
  clc
  adc blocksize
  sta blocksize
  tya
  adc blocksize+1
  sta blocksize+1
+ lda blocksize+2
+ adc #0
+ sta blocksize+2
  clc
  pla
  adc blocksize
@@ -603,6 +610,9 @@
  lda blocksize+1
  adc #0
  sta blocksize+1
+ lda blocksize+2
+ adc #0
+ sta blocksize+2
  rts
 
 .wget_read_atm_header
@@ -679,6 +689,8 @@
  jsr osnewl                 \ move cursor to next line
  jmp wget_dump_http_data_l1 \ continue
 
+\ Decrement blocksize. Blocksize is a 24 bit number but in WGET
+\ we only use 16 bit values so we skip the third byte.
 .dec_blocksize
  sec
  lda blocksize

@@ -28,6 +28,11 @@
             switch = &FE05
             shadow = &F4
 
+            uptvec = &222           \ User Print Vector
+            netprt = &D90           \ Network printer name or ip (32 char)
+            uptype = &DB0           \ User Printer Type
+            uptsav = &DB1           \ Save old uptvec
+
             line = &F2              \ address for command line pointer
             zp = &B0                \ workspace            
 
@@ -39,7 +44,12 @@
 
 			data_counter = zp+6
             blocksize = zp+6
-            load_addr = zp+8
+            load_addr = zp+9
+
+            baudrate = zp+6         \ must be the same as blocksize because of MUL10 routine
+            parity   = zp+9
+            databits = zp+10
+            stopbits = zp+11
 
 			buffer_ptr = zp+9       \ buffer_ptr and data_pointer must be adjescent!
 			data_pointer = zp+11    \ a.k.a. data length

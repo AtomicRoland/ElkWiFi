@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.22"                 \ Rom version string
+.romversion         equs "0.21"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2020 Roland Leurs"
                     equb 0
@@ -130,6 +130,7 @@ include "electron.asm"
                     ldx #0
                     stx pagereg                 \ reset page register to 0
                     stx mux_status              \ disable multiplexing
+                    stx uptype                  \ printer driver not activated
                     ldy #&7F
                     jsr osbyte
                     jsr printtext               \ print the following text
@@ -192,6 +193,10 @@ include "electron.asm"
                     equb >crc_cmd, <crc_cmd
                     equs "DISCONNECT"
                     equb >wget_close, <wget_close
+                    equs "PRINTER"
+                    equb >printer_cmd, <printer_cmd
+                    equs "SETSERIAL"
+                    equb >setserial_cmd, <setserial_cmd
                     equs "WICFS"
                     equb >wicfs_cmd, <wicfs_cmd
                     equs "REWIND"
@@ -227,12 +232,14 @@ include "electron.asm"
                     equs " MODE      Set device mode",&0D
                     equs " PING      ping a host on network",&0D
                     equs " PRD       Paged Ram Dump",&0D
+                    equs " PRINTER   Enable printer driver",&0D
+                    equs " SETSERIAL Configure serial port A",&0D
                     equs " TIME      Print current time",&0D
                     equs " UPDATE    Install ElkWifi ROM update",&0D
                     equs " VERSION   Print firmware version",&0D
                     equs " WGET      Get a file from a webserver",&0D
                     equs " WICFS     Enable WiFi CFS",&0D
-                    equs " WIFI      WiFi controle ON|OFF|HR|SR",&0D
+                    equs " WIFI      WiFi control ON|OFF|HR|SR",&0D
                     nop
 .print_help_end     rts 
 
@@ -280,6 +287,7 @@ include "wicfs.asm"
 include "wget.asm"
 include "menu.asm"
 include "ping.asm"
+include "printer.asm"
 
 equs "This is the end!"
 

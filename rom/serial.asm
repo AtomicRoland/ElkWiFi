@@ -15,6 +15,17 @@ uart_mcr = uart+4
 uart_lsr = uart+5
 uart_msr = uart+6
 
+uart_rhra = uart+8
+uart_thra = uart+8
+uart_dlla = uart+8
+uart_dlma = uart+9
+uart_fcra = uart+10
+uart_afra = uart+10
+uart_lcra = uart+11
+uart_mcra = uart+12
+uart_lsra = uart+13
+uart_msra = uart+14
+
 bank_save = save_a
 
 \ Initialize the UART to 115k2, 8n1
@@ -270,4 +281,44 @@ bank_save = save_a
  lda uart_mcr       \ load status
  and #&01           \ test lowest bit (DTR)
  rts                \ return
+
+\ Setup the serial port A
+\ Parameters in ZP+6 and up: baudrate, parity, databits, stopbits
+.serial_setup_a
+ jsr calculate_baud_divisor     \ calculate the baud rate divisor
+ lda uart_lcra                  \ enable baudrate divisor
+ ora #&80
+ sta uart_lcra
+ lda dividend                   \ set divisor
+ sta uart_dll
+ lda dividend+1
+ sta uart_dlma
+ lda #0                         \ reset the line control value
+ ora parity                     \ add parity
+ ora stopbits                   \ add stop bits
+ ora databits                   \ add word length
+ sta uart_lcra                  \ set line control
+ lda #&01                       \ Enable 16 byte fifo buffer
+ sta uart_fcra
+ lda uart_mcra                  \ load current modem control register
+ and #&F7                       \ set bit 3 to 0
+ sta uart_mcra                  \ write back to modem conrol
+ rts
+
+\ For setting the baud rate we must set the divisor latch. The value for
+\ this latch is calculated as:  CLK / (baudrate * 16) which is the same
+\ as (CLK/16) / baudrate. With CLK = 1.843200 MHz this will be
+\ 115200/baudrate. This is a 24 bit integer division. We can reduce this
+\ to an easier 16 bit division by dividing both components by 2. So we 
+\ calculate 57600 / (baudrate/2).
+.calculate_baud_divisor
+ lsr baudrate+2         \ divide the baudrate by 2
+ ror baudrate+1
+ ror baudrate
+ lda #<57600            \ set the divisor
+ sta dividend            \ write to workspace
+ lda #>57600    
+ sta dividend+1        
+ jsr div16              \ do the division, result goes into baudrate
+ rts                    \ that's all
 
