@@ -140,7 +140,7 @@
  bcs printer0_sleep         \ the buffer is empty, put printer driver to sleep
  tya                        \ transfer character to A
  jsr send_to_printer        \ print its value
- rts                        \ return 
+ jmp printer0               \ make printer buffer empty (fast printing this way :-)
  
 .printer0_sleep
  lda #&7B                   \ load OSBYTE call number
@@ -169,24 +169,27 @@
  equs "AT+CIPSEND",&0D,&EA
  rts                        \ end routine
 
-.printer3                   \ vdu 3 received, ignored
+.printer3                   \ vdu 3 received, stop printing
+ jsr wait_a_second          \ if it does not wait, the +++ for ending pass-through is not correctly processed (?)
  lda #'+'                   \ send three plus signs to end pass-through mode
  jsr send_byte
  jsr send_byte
  jsr send_byte
- jsr send_crlf              \ terminate the three plus command
  jsr wait_a_second          \ guess what it does now....?
- ldx #>cipmode0             \ load high byte  transfer mode 0
- ldy #<cipmode0             \ load low byte  transfer mode 0
+
+ ldx #>cipmode0             \ load high byte transfer mode 0
+ ldy #<cipmode0             \ load low byte transfer mode 0
  lda #27                    \ load function number
  jsr wifidriver             \ call the driver to restore normal transfer mode
  lda #14                    \ load function number
  jsr wifidriver             \ disconnect the printer
- rts                        \ end of routine
-
 .printer4                   \ not specified, ignored
+ rts                        \ end of routine
  
-.printer5                   \ printer change, ignored (for now)
+.printer5                   \ printer change, enables line feed to be send to printer
+ ldx #255                   \ load character ignored by printer
+ lda #6                     \ load osbyte function number
+ jsr osbyte
  rts
 
 .send_to_printer

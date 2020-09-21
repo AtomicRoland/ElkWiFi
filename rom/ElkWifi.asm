@@ -234,7 +234,7 @@ include "electron.asm"
                     equs " VERSION   Print firmware version",&0D
                     equs " WGET      Get a file from a webserver",&0D
                     equs " WICFS     Enable WiFi CFS",&0D
-                    equs " WIFI      WiFi controle ON|OFF|HR|SR",&0D
+                    equs " WIFI      WiFi control ON|OFF|HR|SR",&0D
                     nop
 .print_help_end     rts 
 

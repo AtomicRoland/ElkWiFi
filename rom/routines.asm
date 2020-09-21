@@ -396,7 +396,7 @@ endif
  rts                                \ do you understand it? I don't ;-)
 
 .wait_a_second                      \ wait a second....
- ldx #75                            \ load counter
+ ldx #50                            \ load counter
 .was1
  txa
  pha
