@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.21"                 \ Rom version string
+.romversion         equs "0.23"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2020 Roland Leurs"
                     equb 0
@@ -182,7 +182,7 @@ include "electron.asm"
                     equs "JOIN"
                     equb >join_cmd, <join_cmd
                     equs "LEAVE"
-                    equb >join_cmd, <join_cmd
+                    equb >leave_cmd, <leave_cmd
                     equs "PING"
                     equb >ping_cmd, <ping_cmd
                     equs "MODE"

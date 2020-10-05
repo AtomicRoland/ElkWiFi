@@ -126,6 +126,7 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  jmp update_end                 \ go to end routine
 
 .update_found
+ stx crc                        \ save X register (data pointer)
  jsr printtext                  \ print message
  equs "There is an update available.", &0D
  equs "Do you want to install it (y/R/N)? ",&EA
@@ -140,10 +141,11 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  bne update_cancelled           \ not R, then cancel the update
  jsr osnewl                     \ it looks better on a new line
  jsr update_show_relnotes       \ show release notes
- jmp update_found               \ and ask again if the update must be installed
+ jmp update_start               \ and ask again if the update must be installed
 
 \ Store received CRC
 .update_y
+ ldx crc                        \ restore data pointer
  lda #<crcstr                   \ load address of string to search
  sta needle                     \ and store it in workspace
  lda #>crcstr
@@ -227,6 +229,21 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  rts                        \ return to main routine
 
 .update_crc_error
+ lda #'R'                   \ print letter R(eveived)
+ jsr oswrch
+ lda #':'
+ jsr oswrch
+ lda servercrc+1            \ print server CRC
+ jsr printhex
+ lda servercrc
+ jsr printhex
+ jsr printtext              \ print text
+ equb " C:", &EA
+ lda crc+1                  \ print calculated CRC
+ jsr printhex
+ lda crc
+ jsr printhex
+ jsr osnewl                 \ print line feed
  ldx #(error_bad_crc-error_table)
  jmp error
 
