@@ -257,16 +257,44 @@ endif
  rts                        \ end subroutine
  
 \ Print the WiFi logo
+\ If Mode 7 print blue up-arrow, else use user defined character &80 to print logo
+
+scrmode     = &355          \ current screen mode
+udcmem      = &C00          \ user defined character memory
+alphablue   = &84           \ teletext code for alphanumeric blue characters
+uparrow     = &5E           \ teletext up-arrow symbol
+
 if __ELECTRON__
 .print_logo
  jsr test_wifi_ena          \ test wifi enabled status
  bne logo2                  \ jump if wifi is disabled
- ldx #7                     \ load index for copy
-.logo1
- lda wifi_symbol,x          \ load data
- sta &60A0,x                \ write to screen
- dex                        \ decrement index
- bpl logo1                  \ jump if bytes follow
+ lda scrmode
+ cmp #7                     \ check if mode 7
+ bne not_mode7
+ lda #alphablue             \ print alpha blue code
+ jsr oswrch
+ lda #uparrow
+ jmp oswrch                 \ printup-arrow and leave
+.not_mode7
+ ldx #0
+.logo_loop1
+ lda udcmem,X               \ save current contents of udc memory
+ pha
+ lda wifi_symbol,X          \ load udc with logo
+ sta udcmem,X
+ inx
+ cpx #8
+ bne logo_loop1
+ lda #&20                   \ print space
+ jsr oswrch
+ lda #&80                   \ print logo
+ jsr oswrch
+ ldx #7
+.logo_loop2
+ pla                        \ restore udc memory
+ sta udcmem,X
+ dex
+ bpl logo_loop2
 .logo2
  rts                        \ end of routine
 else
