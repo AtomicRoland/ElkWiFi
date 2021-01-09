@@ -30,6 +30,9 @@ uart_afr = uart+10
 uart_lcr = uart+11
 uart_mcr = uart+12
 
+\ master ram flag
+mrflag   = &27F
+
             org flashcode
 \ Start with saving the X and Y registers
 .flash      stx save_x          \ save bank number in the EEPROM
@@ -125,7 +128,11 @@ uart_mcr = uart+12
             LDA #&F8
             STA &FE05
             LDA #&02
+            BIT mrflag
+            BMI jmp_to_mrb         \ if master ram board present go to its reset entry
             JMP &D8EB 
+.jmp_to_mrb
+            JMP &D901
             
 \ Prepare the erase operation for a sector in bank X. After returning from this subroutine
 \ immediatly write to the sector address.
