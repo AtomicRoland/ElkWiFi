@@ -30,6 +30,7 @@ uart_afr = uart+10
 uart_lcr = uart+11
 uart_mcr = uart+12
 
+
             org flashcode
 \ Start with saving the X and Y registers
 .flash      stx save_x          \ save bank number in the EEPROM
@@ -124,8 +125,15 @@ uart_mcr = uart+12
             STX &028D
             LDA #&F8
             STA &FE05
-            LDA #&02
-            JMP &D8EB 
+            LDA &FFFC                 \ might be mrb so calculate jmp address from reset vector
+            CLC                       \ the offset is &19 in original and mrb OS's
+            ADC #&19
+            STA zp
+            LDA &FFFD
+            ADC #0
+            STA zp+1
+            LDA #2
+            JMP (zp)                  \ jump to OS
             
 \ Prepare the erase operation for a sector in bank X. After returning from this subroutine
 \ immediatly write to the sector address.
