@@ -30,8 +30,6 @@ uart_afr = uart+10
 uart_lcr = uart+11
 uart_mcr = uart+12
 
-\ master ram flag
-mrflag   = &27F
 
             org flashcode
 \ Start with saving the X and Y registers
@@ -127,12 +125,15 @@ mrflag   = &27F
             STX &028D
             LDA #&F8
             STA &FE05
-            LDA #&02
-            BIT mrflag
-            BMI jmp_to_mrb         \ if master ram board present go to its reset entry
-            JMP &D8EB 
-.jmp_to_mrb
-            JMP &D901
+            LDA &FFFC                 \ might be mrb so calculate jmp address from reset vector
+            CLC                       \ the offset is &19 in original and mrb OS's
+            ADC #&19
+            STA zp
+            LDA &FFFD
+            ADC #0
+            STA zp+1
+            LDA #2
+            JMP (zp)                  \ jump to OS
             
 \ Prepare the erase operation for a sector in bank X. After returning from this subroutine
 \ immediatly write to the sector address.
