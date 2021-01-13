@@ -24,6 +24,8 @@
                 uflag = heap + &FD      \ 1 byte
                 laddr = heap + &FE      \ 2 bytes
 
+                tubeflag = &27A         \ (Osbyte &EA = 0 if no tube, &FF if tube)
+
 .wget_cmd                   \ start wget command
  lda #0                     \ initialize flags and address
  sta tflag
@@ -655,6 +657,8 @@
 \ READ HTTP DATA UNTIL blocksize IS 0
 \ DATA IS WRITTEN TO LOAD ADDRESS
 .wget_read_http_data
+ bit tubeflag
+ bmi wget_read_http_to_tube
  ldy #0                     \ clear index
  jsr wget_test_end_of_data  \ test for end of data
  bcc read_http_end          \ jump if end of data is reached
@@ -668,6 +672,37 @@
  bne wget_read_http_data    \ jump if more bytes to read
 .read_http_end  
  rts                        \ return from subroutine
+ 
+ 
+.wget_read_http_to_tube 
+.wget_claim_tube
+ lda #&FF                   \ claim tube interface
+ jsr &406
+ bcc wget_claim_tube
+ ldx #lo(load_data)
+ ldy #hi(load_data)
+ lda #1
+ jsr &406                   \ set up tube for write operation
+.wget_tube_loop
+ ldy #0                     \ clear index
+ jsr wget_test_end_of_data  \ test for end of data
+ bcc http_tube_end          \ jump if end of data is reached
+ jsr read_buffer            \ read byte from input buffer
+ sta &FCE5                  \ write byte to electron tube address
+ ldy #5
+.wget_tube_delay
+ dey
+ bne wget_tube_delay        \ delay to let tube respond
+ jsr dec_blocksize          \ decrement block size
+ bne wget_tube_loop         \ jump if more bytes to read
+.http_tube_end 
+ lda #&80
+ sta &14
+ lda #&20
+ ldx #lo(load_data)
+ ldy #hi(load_data)
+ jmp &406                   \ release tube and return from subroutine
+
 
 \ READ HTTP DATA UNTIL blocksize IS 0
 \ Data is printed to screen.
@@ -725,8 +760,13 @@ if __ELECTRON__
  pha
  tya
  pha
+ ldx #0
+ ldy #8
+ bit tubeflag               \ PAGE is &800 on E2P second processor (if it is different on others someone else can edit this!!)
+ bmi tube_address
  lda #&83                   \ perform OSBYTE &83: return current OSHWM
  jsr osbyte
+ .tube_address
  stx laddr                  \ save low byte
  sty laddr+1                \ save high byte
  pla                        \ restore x and y registers
