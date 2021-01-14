@@ -361,7 +361,9 @@
  bne wget_check_flags       \ if not zero then continue 
 .wget_reread_ipd
  jsr wget_search_ipd        \ else search next IPD string
- bcc wget_crd_end           \ end if no IPD string found 
+ bcs .wget_reread_ipd2
+ jmp wget_crd_end           \ end if no IPD string found 
+.wget_reread_ipd2
  jsr wget_read_ipd          \ read IPD (= number of bytes in datablok)
  jsr wget_search_crlf       \ search end of response headers
 
