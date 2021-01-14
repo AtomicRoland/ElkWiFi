@@ -6,7 +6,7 @@
 \            -P        optional    the file has an Atom-in-PC header
 \            -U        optional    the file is a UEF file
 \            -S        optional    the file is a sideways rom, specify banknumber in address parameter
-             -F        optional    force file to load in host if second processor present
+\             -F        optional    force file to load in host if second processor present
 \            url       required    the url of the file, including http(s)://
 \            address   optional    load address of the file
 \ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters since that option
