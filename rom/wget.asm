@@ -1,11 +1,12 @@
 \ WGET command
-\ Syntax:    *WGET [-T | -X | -A | -P | -U | -S] <url> [address]
+\ Syntax:    *WGET [-T | -X | -A | -P | -U | -S | -F] <url> [address]
 \ Option:    -T        optional    print the downloaded file directly on the screen, newline by &0D
 \            -X        optional    print the downloaded file directly on the screen, newline by &0A
 \            -A        optional    the file has an ATM header
 \            -P        optional    the file has an Atom-in-PC header
 \            -U        optional    the file is a UEF file
 \            -S        optional    the file is a sideways rom, specify banknumber in address parameter
+             -F        optional    force file to load in host if second processor present
 \            url       required    the url of the file, including http(s)://
 \            address   optional    load address of the file
 \ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters since that option
@@ -13,6 +14,7 @@
 \ 
 \ (c) Roland Leurs, July 2020
 
+                fflag = heap + &F4      \ 1 byte as tube transfer flag, 0= host transfer, &FF=tube transfer
                 proto = heap + &F5      \ 1 byte
                 newln = heap + &F6      \ 1 byte
                 clptr = heap + &F7      \ 1 byte
@@ -25,8 +27,11 @@
                 laddr = heap + &FE      \ 2 bytes
 
                 tubeflag = &27A         \ (Osbyte &EA = 0 if no tube, &FF if tube)
+                tubereg  = &FCE5        \ address of tube data transfer register on electron
 
 .wget_cmd                   \ start wget command
+ lda tubeflag               \ fflag will be &FF if tube present, unless cleared later
+ sta fflag
  lda #0                     \ initialize flags and address
  sta tflag
  sta sflag
@@ -45,15 +50,20 @@
  cpx #&00                   \ test if any parameter given, x will be > 0
  bne wget_read_params       \ continue if one parameter is on the command line
  jsr printtext              \ no parameter, print a message
- equs "Usage: WGET [-TXAPUS] <url> [address]",&0D,&EA
+ equs "Usage: WGET [-TXAPUSF] <url> [address]",&0D,&EA
  jmp call_claimed           \ end of command
 
 .wget_read_params
  lda strbuf                 \ read first character of the parameter
  cmp #'-'                   \ check for a dash
  bne wget_read_uri          \ it's not a dash so we consider it the url
+ lda #0                     \ clear fflag when other flags (including F) set to prevent tube transfers
+ sta fflag
+
  lda strbuf+1               \ read character of option
  ora #&20                   \ convert to lowercase
+ cmp #'f'                   \ check for F (force host load- already cleared above)
+ beq wget_l1
  cmp #'t'                   \ check for T (text file)
  beq wget_option_t          \ jump if T
  cmp #'a'                   \ check for A (ATM header)
@@ -72,7 +82,7 @@
 .wget_option_x              
  lda #&0A                   \ load alternative new line character
  sta newln                  \ write to workspace
-.wget_option_t              
+.wget_option_t
  lda #1                     \ set flag to 1
  sta tflag
  bne wget_l1                \ jump always
@@ -389,6 +399,17 @@
  sta load_addr
  lda laddr+1
  sta load_addr+1
+ 
+ lda fflag
+ beq wget_crd_loop          \ if fflag is set initiate tube transfer (other flags will be 0)      
+.wget_claim_tube
+ lda #&FF                   \ claim tube interface
+ jsr &406
+ bcc wget_claim_tube
+ ldx #LO(load_addr)
+ ldy #HI(load_addr)
+ lda #1
+ jsr &406                   \ set up tube for write operation
 
 .wget_crd_loop              \ copy received data
  lda tflag                  \ check for X or T-flag (if set, dump data to screen)
@@ -409,7 +430,16 @@
  jsr wget_read_ipd          \ read the block length
  jmp wget_crd_loop          \ read this block
 .wget_crd_end
- 
+ lda fflag
+ beq wget_crd_end2          \ if fflag is set need to release tube
+ lda #&80                   \ NOTE: this command may need changing for non-E2P
+ sta &14
+ lda #&20
+ ldx #LO(load_addr)
+ ldy #HI(load_addr)
+ jsr &406                   \ release tube
+
+.wget_crd_end2
  lda sflag                  \ test if ROM file
  beq wget_crd_end_l1        \ jump if it's not a ROM file
  jsr wget_copy_file_to_swr  \ go copy the loaded file into sideways RAM
@@ -657,52 +687,27 @@
 \ READ HTTP DATA UNTIL blocksize IS 0
 \ DATA IS WRITTEN TO LOAD ADDRESS
 .wget_read_http_data
- bit tubeflag
- bmi wget_read_http_to_tube
  ldy #0                     \ clear index
  jsr wget_test_end_of_data  \ test for end of data
  bcc read_http_end          \ jump if end of data is reached
  jsr read_buffer            \ read byte from input buffer
+ bit fflag
+ bmi wget_read_tube_data    \ if flag set this is tube transfer
  sta (load_addr),y          \ store in memory
  inc load_addr              \ increment load address
  bne rhd1
  inc load_addr+1
+ jmp rhd1
+.wget_read_tube_data
+ sta tubereg                \ write data to tube
+ jsr read_http_end
+ jsr read_http_end          \ delay to allow tube transfer
+ 
 .rhd1
  jsr dec_blocksize          \ decrement block size
  bne wget_read_http_data    \ jump if more bytes to read
 .read_http_end  
  rts                        \ return from subroutine
- 
- 
-.wget_read_http_to_tube 
-.wget_claim_tube
- lda #&FF                   \ claim tube interface
- jsr &406
- bcc wget_claim_tube
- ldx #lo(load_data)
- ldy #hi(load_data)
- lda #1
- jsr &406                   \ set up tube for write operation
-.wget_tube_loop
- ldy #0                     \ clear index
- jsr wget_test_end_of_data  \ test for end of data
- bcc http_tube_end          \ jump if end of data is reached
- jsr read_buffer            \ read byte from input buffer
- sta &FCE5                  \ write byte to electron tube address
- ldy #5
-.wget_tube_delay
- dey
- bne wget_tube_delay        \ delay to let tube respond
- jsr dec_blocksize          \ decrement block size
- bne wget_tube_loop         \ jump if more bytes to read
-.http_tube_end 
- lda #&80
- sta &14
- lda #&20
- ldx #lo(load_data)
- ldy #hi(load_data)
- jmp &406                   \ release tube and return from subroutine
-
 
 \ READ HTTP DATA UNTIL blocksize IS 0
 \ Data is printed to screen.
@@ -762,7 +767,7 @@ if __ELECTRON__
  pha
  ldx #0
  ldy #8
- bit tubeflag               \ PAGE is &800 on E2P second processor (if it is different on others someone else can edit this!!)
+ bit fflag                  \ PAGE is &800 on second processor
  bmi tube_address
  lda #&83                   \ perform OSBYTE &83: return current OSHWM
  jsr osbyte
