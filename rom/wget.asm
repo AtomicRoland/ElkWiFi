@@ -324,6 +324,22 @@
 
 \ Set parameters for CIPSEND command
 .wget_send_l1
+ lda fflag                  \ but first check if tube transfer
+ beq wget_send_l1a          \ if fflag is set (other flags will be 0)      
+ lda laddr                  \ get load address and initiate tube here to avoid loss of data while tube starts
+ ora laddr+1
+ bne wget_claim_tube        \ yes, there is a load address so jump
+ jsr wget_set_default_load  \ otherwise set the default load address
+.wget_claim_tube
+ lda #&FF                   \ claim tube interface
+ jsr &406
+ bcc wget_claim_tube
+ ldx #LO(laddr)
+ ldy #HI(laddr)
+ lda #1
+ jsr &406                   \ set up tube for write operation
+
+.wget_send_l1a
  ldx #data_counter          \ load pointer to zeropage
  lda #<heap                 \ set start of heap in zeropage
  sta &00,x
@@ -402,17 +418,6 @@
  lda laddr+1
  sta load_addr+1
  
- lda fflag
- beq wget_crd_loop          \ if fflag is set initiate tube transfer (other flags will be 0)      
-.wget_claim_tube
- lda #&FF                   \ claim tube interface
- jsr &406
- bcc wget_claim_tube
- ldx #LO(load_addr)
- ldy #HI(load_addr)
- lda #1
- jsr &406                   \ set up tube for write operation
-
 .wget_crd_loop              \ copy received data
  lda tflag                  \ check for X or T-flag (if set, dump data to screen)
  bne wget_dump_data
