@@ -28,6 +28,9 @@
 
                 tubeflag = &27A         \ (Osbyte &EA = 0 if no tube, &FF if tube)
                 tubereg  = &FCE5        \ address of tube data transfer register on electron
+                tubeID   = &E0          \ a number between &C0 and &FF that is my ID for claiming tube interface
+                                        \ needs to be sent with bit 6 = 0, ie. between &80 and &BF to release tube
+                                        \ unless a run command 4 has been sent
 
 .wget_cmd                   \ start wget command
  lda tubeflag               \ fflag will be &FF if tube present, unless cleared later
@@ -332,7 +335,7 @@
  lda #8                     \ default to PAGE (&800 in second processor)
  sta laddr+1
 .wget_claim_tube
- lda #&FF                   \ claim tube interface
+ lda #tubeID                \ claim tube interface
  jsr &406
  bcc wget_claim_tube
  ldx #LO(laddr)
@@ -440,11 +443,14 @@
 .wget_crd_end
  lda fflag
  beq wget_crd_end2          \ if fflag is set need to release tube
- lda #&80                   \ NOTE: this command may need changing for non-E2P
- sta &14
- lda #&20
- ldx #LO(load_addr)
- ldy #HI(load_addr)
+ ldx #LO(laddr)
+ ldy #HI(laddr)
+ lda #tubeID
+ and #&BF                   \ clear bit 6 of ID to release tube
+ bit laddr+1
+ bpl wget_tube_release
+ lda #4                     \ if address is >= &8000 this is a language so send run command (and release tube)
+.wget_tube_release
  jsr &406                   \ release tube
 
 .wget_crd_end2
