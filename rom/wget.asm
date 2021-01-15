@@ -329,7 +329,8 @@
  lda laddr                  \ get load address and initiate tube here to avoid loss of data while tube starts
  ora laddr+1
  bne wget_claim_tube        \ yes, there is a load address so jump
- jsr wget_set_default_load  \ otherwise set the default load address
+ lda #8                     \ default to PAGE (&800 in second processor)
+ sta laddr+1
 .wget_claim_tube
  lda #&FF                   \ claim tube interface
  jsr &406
@@ -772,13 +773,8 @@ if __ELECTRON__
  pha
  tya
  pha
- ldx #0
- ldy #8
- bit fflag                  \ PAGE is &800 on second processor
- bmi tube_address
  lda #&83                   \ perform OSBYTE &83: return current OSHWM
  jsr osbyte
- .tube_address
  stx laddr                  \ save low byte
  sty laddr+1                \ save high byte
  pla                        \ restore x and y registers
