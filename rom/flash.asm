@@ -113,7 +113,7 @@ uart_mcr = uart+12
             bne prgloop1        \ if not then continue with next block
 
 
-\ End of routine
+\ End of routine                \ The first bytes are a copy of the original reset routine
 .reset      LDA #&40
             STA &0D00
             SEI
@@ -124,16 +124,16 @@ uart_mcr = uart+12
             STX &FE00
             STX &028D
             LDA #&F8
-            STA &FE05
-            LDA &FFFC                 \ might be mrb so calculate jmp address from reset vector
-            CLC                       \ the offset is &19 in original and mrb OS's
+            STA &FE05           \ Until here it's a copy
+            LDA &FFFC           \ might be mrb so calculate jmp address from reset vector
+            CLC                 \ the offset is &19 in original and mrb OS's   (John W.)
             ADC #&19
             STA zp
             LDA &FFFD
             ADC #0
             STA zp+1
-            LDA #2
-            JMP (zp)                  \ jump to OS
+            LDA #2              \ This value is normally read from the ULA to check a power on reset
+            JMP (zp)            \ Force a cold reset by continuing in the OS ROM
             
 \ Prepare the erase operation for a sector in bank X. After returning from this subroutine
 \ immediatly write to the sector address.

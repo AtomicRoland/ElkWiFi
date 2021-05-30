@@ -34,7 +34,7 @@
             uptsav = &DB1           \ Save old uptvec
 
             line = &F2              \ address for command line pointer
-            zp = &B0                \ workspace            
+            zp = &90                \ workspace
 
 			save_a = zp+2           \ only used in driver, outside driver is may be used for "local" work
 			save_y = zp+3           \ only used in driver, outside driver is may be used for "local" work
@@ -59,8 +59,8 @@
             crc = zp+15             \ calculated crc, 2 bytes
             servercrc = zp+17       \ received crc, 2 bytes
 						
-			mux_status  = &90
-			mux_channel = &91     \ need 5 bytes!
+			mux_status  = &AA
+			mux_channel = &AB     \ need 5 bytes!
 			
 
 ORG &8000-22         ; it's a sideway ROM service and it containts an ATM header

@@ -31,6 +31,7 @@
  jsr set_bank_nr        ; set new bank number (in serial.asm)
 
 .pdump_start
+ \ lda uart_mcr : jsr printhex : jsr osnewl
  lda load_addr          ; load the offset in paged ram
  and #&F8               ; align to 0 or 8 offset
  sta load_addr          ; store load address

@@ -41,7 +41,7 @@
  jmp error                  \ throw page ram error
 .wifi_init_uart
  jsr init_uart              \ initialize the uart
- lda #2                     \ set default time-out
+ lda #4                     \ set default time-out
  sta time_out
  jsr send_command           \ send ECHO OFF to ESP device
  equs "ATE0",&0D

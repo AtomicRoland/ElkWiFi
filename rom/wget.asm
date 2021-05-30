@@ -407,14 +407,16 @@
 .wget_set_load_addr_l1
  lda uflag                  \ is it an UEF file?
  beq wget_set_load_addr_l3  \ no, then jump to store the load address in zero page
-.wget_set_load_addr_l2
  ldy #0                     \ reset pointer to paged RAM
+.wget_set_load_addr_l2
  sty pr_r                   \ set "second page register"
- sty pr_y
+ ldy #0                     \ reset pointer to paged RAM (necessary if S flag set!)
+ sty pr_y                   \ set "second page pointer"
  sty sbufl                  \ reset tape length counter
  sty sbufh
  beq wget_crd_loop          \ jump always
 .wget_set_load_addr_l3
+ ldy #&20                   \ load SW ROM files from page &20 to save WiDFS work space
  lda sflag                  \ is it a SW ROM file?
  bne wget_set_load_addr_l2  \ if so, treat it like an UEF file
  lda laddr                  \ copy load address to zero page
@@ -854,8 +856,9 @@ endif
 \ Do your copy stuff here. This routine is copied outside of the ROM
 \ and then called. 
  sei
- ldx #&00      
+ ldx #&20
  stx pagereg
+ ldx #&00
  stx zp+2
  lda #&80
  sta zp+3

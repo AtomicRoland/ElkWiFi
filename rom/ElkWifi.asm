@@ -22,9 +22,9 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.23"                 \ Rom version string
+.romversion         equs "0.26"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
-                    equs "(C)2020 Roland Leurs"
+                    equs "(C)2021 Roland Leurs"
                     equb 0
 
 \ Command table
@@ -81,6 +81,8 @@ include "electron.asm"
 .command_x1         sta zp+1                    \ set in workspace
                     lda commandtable+1,x        \ load low byte of command start
                     sta zp                      \ set in workspace
+\                    jsr save_bank_nr            \ save current paged ram bank number
+                    jsr set_bank_0              \ select bank 0
                     jmp (zp)                    \ go and execute the command
 .command_x6         pla                         \ restore registers
                     tax

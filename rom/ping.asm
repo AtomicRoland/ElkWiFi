@@ -8,8 +8,8 @@
 
 .ping_cmd
  jsr skipspace1             \ forward Y pointer to first non-space character
- jsr read_cli_param         \ read ssid from command line
- cpx #&00                   \ test if ssid given, x will be > 0
+ jsr read_cli_param         \ read host from command line
+ cpx #&00                   \ test if host given, x will be > 0
  bne ping_start             \ continue as the destination host is on the command line
  jsr printtext              \ no destination, print a message
  equs "Usage: *PING <hostname or IP>",&0D,&EA
@@ -18,7 +18,7 @@
 .ping_start
  ldx #5                     \ Number of pings to do
  stx size                   \ store in workspace
- ldx #32                    \ quit long time out
+ ldx #32                    \ quite long time out
  stx time_out    
 .ping_loop
  ldx #>strbuf               \ load pointer to hostname or IP
@@ -27,6 +27,8 @@
  jsr wifidriver             \ do the ping
 
  \ Process the response
+ jsr set_bank_0
+ jsr reset_buffer
  lda pageram                \ load the first character of the response
  cmp #'+'                   \ is it a plus sign?
  bne ping_error             \ no, then jump for error (dns or network failure)

@@ -107,7 +107,9 @@
                     rts
 
 \ This short routine restores the registers X and Y and sets the accumulator to &00 to claim a call.
-.call_claimed       pla                     \ restore x and y
+.call_claimed
+                    \ jsr restore_bank_nr     \ restore paged ram bank number
+                    pla                     \ restore x and y
                     tax
                     pla
                     tay

@@ -48,7 +48,7 @@ bank_save = save_a
  sta uart_fcr
  lda uart_mcr   \ load current modem control register
  and #&F7       \ set bit 3 to 0
- sta uart_mcr   \ write back to modem conrol and activate bank 0
+ sta uart_mcr   \ write back to modem control and activate bank 0
  rts
  
 \ Send a byte to the ESP8266 module
