@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.26"                 \ Rom version string
+.romversion         equs "0.27"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2021 Roland Leurs"
                     equb 0
@@ -205,6 +205,8 @@ include "electron.asm"
                     equb >rewind_cmd, <rewind_cmd
                     equs "QUPCFS"
                     equb >bUPCFS, <bUPCFS
+                    equs "TELNET"
+                    equb >telnet_cmd, <telnet_cmd
                     equb >command_x6, <command_x6
                     
 
@@ -289,6 +291,7 @@ include "wicfs.asm"
 include "wget.asm"
 include "menu.asm"
 include "ping.asm"
+include "telnet.asm"
 include "printer.asm"
 
 equs "This is the end!"

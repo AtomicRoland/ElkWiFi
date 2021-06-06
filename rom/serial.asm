@@ -62,7 +62,27 @@ bank_save = save_a
  pla
  sta uart_thr
  rts
- 
+
+\ Read a byte from the ESP8266 module
+\ On exit,  C=0 -> no character received
+\           C=1 -> received character in A
+\           X and Y are preserved
+.read_byte
+ lda #0                     \ initialize time out
+ sta time_out
+.read_byte_loop
+ lda uart_lsr               \ test data present
+ and #&01
+ bne read_byte_data         \ jump if data received
+ dec time_out
+ bne read_byte_loop         \ jump if not timed out yet
+ clc                        \ time out, clear carry to indicate no data
+ rts                        \ return to calling routine
+.read_byte_data
+ sec                        \ set carry to indicate receive data
+ lda uart_rhr               \ load data
+ rts                        \ return to calling routine
+
 \ Disable ESP8266 module
 \ This call is in the serial driver because the board uses DTR to enable (H) or
 \ disable (L) the module.

@@ -33,6 +33,10 @@
             uptype = &DB0           \ User Printer Type
             uptsav = &DB1           \ Save old uptvec
 
+            RAW     = 0             \ Telnet raw mode
+            PRESTEL = 1             \ Telnet prestel mode
+            ANSI    = 2             \ Telnet ansi mode
+
             line = &F2              \ address for command line pointer
             zp = &90                \ workspace
 
@@ -58,7 +62,11 @@
             datalen = zp+13         \ data length counter, 2 bytes
             crc = zp+15             \ calculated crc, 2 bytes
             servercrc = zp+17       \ received crc, 2 bytes
-						
+
+			read_ptr = zp+9         \ just a few other names, used by the telnet command
+			write_ptr = zp+11
+			telnet_mode = zp+8
+
 			mux_status  = &AA
 			mux_channel = &AB     \ need 5 bytes!
 			
