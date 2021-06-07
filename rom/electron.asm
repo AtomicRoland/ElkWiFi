@@ -63,8 +63,8 @@
             crc = zp+15             \ calculated crc, 2 bytes
             servercrc = zp+17       \ received crc, 2 bytes
 
-			read_ptr = zp+9         \ just a few other names, used by the telnet command
-			write_ptr = zp+11
+			read_ptr = zp+15         \ just a few other names, used by the telnet command
+			write_ptr = zp+17
 			telnet_mode = zp+8
 
 			mux_status  = &AA

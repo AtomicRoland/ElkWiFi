@@ -207,6 +207,8 @@ include "electron.asm"
                     equb >bUPCFS, <bUPCFS
                     equs "TELNET"
                     equb >telnet_cmd, <telnet_cmd
+                    equs "RESUME"
+                    equb >resume_cmd, <resume_cmd
                     equb >command_x6, <command_x6
                     
 

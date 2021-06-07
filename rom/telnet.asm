@@ -65,34 +65,26 @@
 \ are no characters to print then check if there is a key pressed and
 \ send that key to the host.
 
- lda #0                     \ initialize paged RAM
- sta pagereg
- ldx #0                     \ initialize buffer read and write pointers
- stx read_ptr
+.resume_cmd
+ ldx #0                     \ initialize paged RAM
+ stx pagereg
+ stx read_ptr               \ initialize buffer read and write pointers
  stx read_ptr+1
  stx write_ptr
  stx write_ptr+1
 
 .telnet_loop
-\ lda #'1':jsr osasci
  jsr read_byte              \ read a byte
  bcc telnet_prt             \ nothing received, branch to print routine
  ldx write_ptr+1            \ set paged RAM register
  stx pagereg
  ldx write_ptr              \ load write pointer
  sta pageram,x              \ write to buffer
- inc write_ptr              \ increment write pointer
- bne telnet_loop            \ jump if no page overflow
- inc write_ptr+1            \ increment page write pointer
+ jsr telnet_inc_writeptr    \ increment write pointer
  jmp telnet_loop            \ jump to start of loop
 
 .telnet_prt                 \ check if there's a character to print
-\ lda #'2':jsr osasci
- lda read_ptr               \ compare read with write pointer
- cmp write_ptr
- bne telnet_pr_chr          \ pointers are not equal, so there's data in the buffer
- lda read_ptr+1
- cmp write_ptr+1
+ jsr telnet_cmp_ptrs        \ test if pointers are equal
  beq telnet_key             \ pointers are equal, branch to key scan routine
 .telnet_pr_chr
  ldx read_ptr+1             \ set paged RAM read pointer
@@ -104,17 +96,14 @@
  cmp #ANSI                  \ is it ansi mode
  bne telnet_print_raw       \ no, then just print the character
  jmp telnet_ansi            \ jump to ansi print routine
-.telnet_print_raw           \ all others are just printed
- lda pageram,x              \ print the character in the buffer
+ lda pageram,x              \ all others are just printed
+.telnet_print_raw
  jsr osasci
 .telnet_print_incptr
- inc read_ptr               \ increment the read pointer
- bne telnet_loop            \ jump to start of loop
- inc read_ptr+1             \ increment high byte
+ jsr telnet_inc_readptr     \ increment buffer read pointer
  jmp telnet_loop            \ jump to start of loop
 
 .telnet_key
-\ lda #'3':jsr osasci
  lda #&81                   \ load OSBYTE function call nr to read keyboard buffer
  ldx #0                     \ buffer number for keyboard buffer
  ldy #0                     \ buffer number for keyboard buffer
@@ -129,9 +118,9 @@
 .telnet_end
  lda #&7C
  jsr osbyte
- jsr printer3               \ this disables pass through mode and disconnects from server
  jsr printtext
  equs "Disconnected",&0D,&EA
+ jsr printer3               \ this disables pass through mode and disconnects from server
  jmp call_claimed
 
 .telnet_prestel
@@ -140,22 +129,58 @@
  beq telnet_print_incptr    \ ignore it
  cmp #&1B                   \ is it an escape character
  bne telnet_print_raw       \ just print it
- inc read_ptr
- bne telnet_prestel_l1
- inc read_ptr+1
-.telnet_prestel_l1
+ jsr telnet_cmp_ptrs        \ is it the last character in the buffer
+ beq telnet_loop            \ if so, then leave it for now because we don't have the control code yet
+ jsr telnet_inc_readptr     \ else increment buffer read pointer
  inx                        \ increment pointer
  bne telnet_prestel_code    \ jump if no page wrap
  inc pagereg                \ otherwise increment register for next page
 .telnet_prestel_code
  lda pageram,x              \ read the control code
- clc                        \ clear carry for addition
- adc #64                    \ add 64 for the correct control code
+ clc                        \ set carry for substraction
+ adc #64                    \ sub 65 for the correct control code
  jsr oswrch                 \ print it
  jmp telnet_print_incptr    \ jump to increment read pointer and continue the loop
 
+.telnet_color_tab
+ equb 0, 1, 2, 3, 1, 2, 3, 1
 
 .telnet_ansi
  lda pageram,x              \ load the character
  jsr osasci                 \ print it, for now....
  jmp telnet_loop            \ continue the loop
+
+
+.printvars
+ jsr printhex
+ lda #' ':jsr oswrch
+ lda read_ptr+1 : jsr printhex
+ lda read_ptr : jsr printhex
+  lda #' ':jsr oswrch
+ lda write_ptr+1 : jsr printhex
+ lda write_ptr : jsr printhex
+ jmp osnewl
+
+.telnet_cmp_ptrs
+ lda read_ptr               \ compare read with write pointer
+ cmp write_ptr
+ bne telnet_cmp_end         \ pointers are not equal, so there's data in the buffer
+ lda read_ptr+1
+ cmp write_ptr+1
+.telnet_cmp_end
+ rts
+
+.telnet_inc_readptr
+ inc read_ptr
+ bne telnet_incr_end
+ inc read_ptr+1
+.telnet_incr_end
+ rts
+
+.telnet_inc_writeptr
+ inc write_ptr
+ bne telnet_incw_end
+ inc write_ptr+1
+.telnet_incw_end
+ rts
+
