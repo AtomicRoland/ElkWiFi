@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.26"                 \ Rom version string
+.romversion         equs "0.27"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2021 Roland Leurs"
                     equb 0
@@ -165,7 +165,9 @@ include "electron.asm"
                     equb >wget_cmd, <wget_cmd
                     equs "MENU"
                     equb >menu_cmd, <menu_cmd
-                    equs "WIFI" 
+                    equs "WMENU"
+                    equb >menu_cmd, <menu_cmd
+                    equs "WIFI"
                     equb >wifi_cmd, <wifi_cmd 
                     equs "VERSION"
                     equb >version_cmd, <version_cmd
@@ -230,7 +232,6 @@ include "electron.asm"
                     equs " LAP       List access points",&0D
                     equs " LAPOPT    Set LAP options",&0D
                     equs " LEAVE     Disconnect from network",&0D
-                    equs " MENU      start the menu program",&0D   
                     equs " MODE      Set device mode",&0D
                     equs " PING      ping a host on network",&0D
                     equs " PRD       Paged Ram Dump",&0D
@@ -242,6 +243,7 @@ include "electron.asm"
                     equs " WGET      Get a file from a webserver",&0D
                     equs " WICFS     Enable WiFi CFS",&0D
                     equs " WIFI      WiFi control ON|OFF|HR|SR",&0D
+                    equs " WMENU     start the menu program",&0D
                     nop
 .print_help_end     rts 
 
