@@ -68,7 +68,8 @@ bank_save = save_a
 \           C=1 -> received character in A
 \           X and Y are undefined
 .read_byte
- lda #40                    \ initialize time out
+; clc:rts     \ atomic debugging
+ lda #00                    \ initialize time out
  sta time_out
 .read_byte_loop
  lda uart_lsr               \ test data present

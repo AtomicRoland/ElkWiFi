@@ -63,9 +63,10 @@
             crc = zp+15             \ calculated crc, 2 bytes
             servercrc = zp+17       \ received crc, 2 bytes
 
-			read_ptr = zp+15         \ just a few other names, used by the telnet command
+			read_ptr = zp+15        \ just a few other names, used by the telnet command
 			write_ptr = zp+17
-			telnet_mode = zp+8
+			telnet_mode = zp+8      \ telnet mode for displaying text (prestel, ansi, raw etc)
+            quelen = zp + 7         \ queue length for prestel and ansi escape sequences
 
 			mux_status  = &AA
 			mux_channel = &AB     \ need 5 bytes!

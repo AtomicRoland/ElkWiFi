@@ -165,7 +165,7 @@ include "electron.asm"
                     equb >wget_cmd, <wget_cmd
                     equs "MENU"
                     equb >menu_cmd, <menu_cmd
-                    equs "WIFI" 
+                    equs "WIFI"
                     equb >wifi_cmd, <wifi_cmd 
                     equs "VERSION"
                     equb >version_cmd, <version_cmd
@@ -234,7 +234,7 @@ include "electron.asm"
                     equs " LAP       List access points",&0D
                     equs " LAPOPT    Set LAP options",&0D
                     equs " LEAVE     Disconnect from network",&0D
-                    equs " MENU      start the menu program",&0D   
+                    equs " MENU      start the menu program",&0D
                     equs " MODE      Set device mode",&0D
                     equs " PING      ping a host on network",&0D
                     equs " PRD       Paged Ram Dump",&0D
