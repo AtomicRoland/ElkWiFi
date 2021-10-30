@@ -37,6 +37,7 @@
  beq flash
  jsr test_wifi_ena          \ test is wifi is enables (in serial.asm)
  beq wifi_init_uart         \ jump if wifi is enabled
+ jsr uart_wifi_off          \ redo the disable because sometimes the WiFi gets enabled after a reset
  ldx #(error_disabled-error_table)
  jmp error                  \ throw page ram error
 .wifi_init_uart

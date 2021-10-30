@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.27"                 \ Rom version string
+.romversion         equs "0.28"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2021 Roland Leurs"
                     equb 0
@@ -110,7 +110,9 @@ include "electron.asm"
                     jsr print_help              \ it's me, do something
                     jmp call_claimed            \ claim call and end
 \ There was no additional keyword on the command line, print title                    
-.help_l2            jsr help_version            \ print title and version
+.help_l2            jsr printtext               \ print newline
+                    equb &0A,&0D,&EA
+                    jsr help_version            \ print title and version
                     jsr printtext               \ print keyword to respond
                     equb &D,&20,&20
                     equs "WIFI",&D,&EA
