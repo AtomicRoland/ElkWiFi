@@ -22,21 +22,23 @@ This cartridge is tested with an Acorn Electron and a standard Acorn Plus-1 expa
 
 # Useful commands
 
-DATE			display date
-IFCFG	  	display network information
-JOIN			connect to a wireless network
-LAP			  get a list of access points
-LAPOPT		set options for lap command
-LEAVE	  	disconnect from current network
-MODE		  select operating mode
-PRD			  dump contents of paged ram
-REWIND		reset UEF pointer
-TIME			display current time
-UPDATE		check for updates
-VERSION	  display firmware information
-WGET		  retrieve a file from the Internet
-WICFS		  Activate WiCFS
-WIFI			interface control
+Command | Description
+------- | -----------
+DATE		|	display date
+IFCFG	  |	display network information
+JOIN		|	connect to a wireless network
+LAP			| get a list of access points
+LAPOPT	|	set options for lap command
+LEAVE	  |	disconnect from current network
+MODE		| select operating mode
+PRD			| dump contents of paged ram
+REWIND	|	reset UEF pointer
+TIME		|	display current time
+UPDATE	|	check for updates
+VERSION	| display firmware information
+WGET		|  retrieve a file from the Internet
+WICFS		|  Activate WiCFS
+WIFI		|	interface control
 
 
 # Support
