@@ -290,7 +290,7 @@ bank_save = save_a
  ora #&80
  sta uart_lcra
  lda dividend                   \ set divisor
- sta uart_dll
+ sta uart_dlla
  lda dividend+1
  sta uart_dlma
  lda #0                         \ reset the line control value

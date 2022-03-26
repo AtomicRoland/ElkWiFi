@@ -231,6 +231,8 @@ endif
  lda (line),y               \ Read the next character from the command line
  cmp #&0D                   \ Is it end of line?
  beq read_param_end         \ Yes, jump to the end of the routine
+ cmp #'"'                   \ is it a double quote?
+ beq read_param_quoted      \ Yes, jump for slightly modified routine
  cmp #&20                   \ Is it a space (end of parameter)
  beq read_param_end         \ Yes, jump to the end of the routine
  sta strbuf,x               \ Store in temporary space
@@ -242,7 +244,28 @@ endif
  lda #&0D                   \ Terminate the parameter string
  sta strbuf,x                 
  rts                        \ End of routine
- 
+
+.read_param_quoted
+ iny                        \ increment pointer
+ lda (line),y               \ read next character
+ cmp #&0D                   \ check for end of line
+ beq read_param_error       \ jump for error (missing closing quote)
+ sta strbuf,x               \ store character in string buffer
+ inx                        \ increment storage pointer
+ cmp #'"'                   \ check for quote
+ bne read_param_quoted      \ if not then jump for next character
+ dex                        \ decrement storage pointer
+ iny                        \ increment input pointer
+ lda (line),y               \ read next character
+ cmp #'"'                   \ check for double quote
+ bne read_param_end         \ if not double then it was the closing quote, jump to end
+ inx                        \ increment input pointer
+ bcs read_param_quoted      \ jump for next character
+
+.read_param_error
+ ldx #(error_bad_param - error_table)       \ load "parameter error"
+ jmp error                  \ throw an error
+
 \ Copy the parameter at 'strbuf' to the parameter block (called heap, because in the original Atom version
 \ it was really on the heap). X should be set to zero at the first call.
 .copy_to_heap
