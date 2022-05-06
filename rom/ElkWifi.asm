@@ -22,9 +22,9 @@ include "electron.asm"
                     equb &00                    \ version 0.0x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.27"                 \ Rom version string
+.romversion         equs "0.30"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
-                    equs "(C)2021 Roland Leurs"
+                    equs "(C)2022 Roland Leurs"
                     equb 0
 
 \ Command table
@@ -64,6 +64,9 @@ include "electron.asm"
                     bmi command_x1              \ jump if negative (i.e. end of command, high byte of start address)
                     cmp (line),y                \ compare with character on command line
                     beq command_x2              \ jump if equal
+                    ora #&20                    \ perhaps it's lower case, convert to lower case
+                    cmp (line),y                \ compare again
+                    beq command_x2              \ jump if equal
 \ There was a character read that is not in the current command. Either it is abbreviated or it's
 \ another command. In both cases, increment the X index to the end of the command in the table. X points
 \ to the (possible) start address of the command.
@@ -102,6 +105,7 @@ include "electron.asm"
                     beq help_l2                 \ yes it is, print title and version
                     ldx #3                      \ load keyword length
 .help_l1            lda (line),y                \ read next character from keyword
+                    and #&DF                    \ make it upper case
                     cmp commands,x              \ compare with my keyword
                     bne help_l3                 \ if not equal then it's not me
                     iny                         \ increment command pointer
@@ -110,7 +114,9 @@ include "electron.asm"
                     jsr print_help              \ it's me, do something
                     jmp call_claimed            \ claim call and end
 \ There was no additional keyword on the command line, print title                    
-.help_l2            jsr help_version            \ print title and version
+.help_l2            jsr printtext               \ print newline
+                    equb &0A,&0D,&EA
+                    jsr help_version            \ print title and version
                     jsr printtext               \ print keyword to respond
                     equb &D,&20,&20
                     equs "WIFI",&D,&EA
@@ -164,6 +170,8 @@ include "electron.asm"
 .commandtable       equs "WGET"
                     equb >wget_cmd, <wget_cmd
                     equs "MENU"
+                    equb >menu_cmd, <menu_cmd
+                    equs "WMENU"
                     equb >menu_cmd, <menu_cmd
                     equs "WIFI"
                     equb >wifi_cmd, <wifi_cmd 
@@ -234,7 +242,6 @@ include "electron.asm"
                     equs " LAP       List access points",&0D
                     equs " LAPOPT    Set LAP options",&0D
                     equs " LEAVE     Disconnect from network",&0D
-                    equs " MENU      start the menu program",&0D
                     equs " MODE      Set device mode",&0D
                     equs " PING      ping a host on network",&0D
                     equs " PRD       Paged Ram Dump",&0D
@@ -246,6 +253,7 @@ include "electron.asm"
                     equs " WGET      Get a file from a webserver",&0D
                     equs " WICFS     Enable WiFi CFS",&0D
                     equs " WIFI      WiFi control ON|OFF|HR|SR",&0D
+                    equs " WMENU     start the menu program",&0D
                     nop
 .print_help_end     rts 
 

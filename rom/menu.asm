@@ -3,6 +3,10 @@
 \ Syntax:     *MENU
  
 .menu_cmd
+    \ Switch off any disk system by performing *TAPE and set PAGE=&E00
+    lda #&8C        \load A for *TAPE (osbyte 140)
+    jsr osbyte
+
     ldx #<menu_wget \load pointer to command string
     ldy #>menu_wget
     jsr oscli       \pass the command to the CLI
