@@ -3,8 +3,8 @@
 \ (c) Roland Leurs, June 2021
 
 
-.telnet_cmd                 \ start wget command
- lda #ANSI                  \ set character display mode
+.telnet_cmd                 \ start telnet command
+ lda #PRESTEL               \ set character display mode
  sta telnet_mode            \ 0 = raw, 1 = prestel, 2 = ansi
  \ Start to build a parameter block in strbuf
  ldx #0                     \ init pointer
