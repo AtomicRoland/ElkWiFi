@@ -12,6 +12,7 @@
  beq printer_help           \ continue if there are no parameters
 
  lda strbuf                 \ read first character of the parameter
+ and #&DF                   \ convert to upper case
  cmp #'S'                   \ compare with S (serial)
  beq printer_serial         \ initialize serial printer
  cmp #'T'                   \ compare with T (tcp)

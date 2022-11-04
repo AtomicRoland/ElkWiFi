@@ -11,6 +11,8 @@
 
             pagereg = &FCFF
             pageram = &FD00
+            AP5_disable = &FCD8     \ Writing to this register disables the 74LS245 for paged ram access
+
 			timer = &140            \ Count down timer, 3 bytes
 			time_out = timer + 4    \ Time-out setting, 1 byte
 

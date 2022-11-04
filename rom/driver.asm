@@ -42,6 +42,7 @@
  jmp error                  \ throw page ram error
 .wifi_init_uart
  jsr init_uart              \ initialize the uart
+ sta AP5_disable            \ disable the ls245 on the AP5 to avoid conflicts with paged RAM
  lda #4                     \ set default time-out
  sta time_out
  jsr send_command           \ send ECHO OFF to ESP device
