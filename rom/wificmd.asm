@@ -10,6 +10,7 @@
                 cmp #&0D                    \ test if no paramaters given
                 beq wifi_badcmd             \ if &0D then there are no parameters
                 jsr skipspace               \ forward Y pointer to first non-space character
+                and #&DF                    \ convert to upper case
                 cmp #'O'                    \ It's on or off
                 beq wifi_on_off
                 cmp #'S'                    \ Soft reset
@@ -24,13 +25,15 @@
 .wifi_sr        ldx #0                      \ load driver command for soft reset (send AT+RST)
 .wifi_reset     iny                         \ increment pointer to command line
                 lda (line),y                \ load next character
-                cmp #'R'                    \ check if second letter is an R                
+                and #&DF                    \ convert to upper case
+                cmp #'R'                    \ check if second letter is an R
                 bne wifi_badcmd             \ No it's not, go print help info
                 txa                         \ transfer driver command to A
                 jsr wifidriver              \ perform the action
                 jmp call_claimed            \ end of command
 
 .wifi_on_off    jsr skipspace               \ read the next character (skips space but that won't matter)
+                and #&DF                    \ convert to upper case
                 cmp #'N'                    \ it's an N, so wifi on
                 beq wifi_on
                 cmp #'F'                    \ if's an F, so wifi off

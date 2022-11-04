@@ -14,6 +14,9 @@
 --
 -- Revision:
 -- Revision 0.01 - File Created
+-- Revision 0.02 - September 2, 2022
+--               - Possible bug fix in addressing paged RAM
+--               - Bug fix in enable/disable WiFi (reset UART)
 -- Additional Comments:
 --
 ----------------------------------------------------------------------------------
@@ -107,7 +110,7 @@ begin
       -- Platform independant control logic
       -- Enable UART at &FC3x
       -- and &FCFF (paged ram register)
-      if nPGFC = '0' and (A(7 downto 4) = "0011" or A(7 downto 0) = "11111111") then
+      if nPGFC = '0' and (A(7 downto 4) = "0011" or A(7 downto 0) = x"FF") then
          cs_uart <= '0';
       else
          cs_uart <= '1';
@@ -129,7 +132,7 @@ begin
       -- Platform dependant control logic
       if madet = '1' then -- Electron control logic
          -- Enable Paged Ram Register when writing to &FCFF
-         if nPGFC = '0' and A(7 downto 0) = "11111111" and ERnW = '0' then
+         if nPGFC = '0' and A(7 downto 0) = x"FF" and ERnW = '0' and Ph12 = '1' then
             cs_pareg <= '0';
          else
             cs_pareg <= '1';
@@ -148,12 +151,12 @@ begin
          -- Set/reset wifi_disable by writing to the LSR-B (&FC35) and
          -- MSR-B (&FC36) registers
          if rising_edge(ph12) then
-            if nPGFC = '0' and (A(7 downto 1) = "0011010" or A(7 downto 1) = "0011011") and ERnW = '0' then
+            if nPGFC = '0' and (A(7 downto 0) = x"35" or A(7 downto 0) = x"36") and ERnW = '0' then
                wifi_disable <= A(0);
             end if;
          end if;
       else  -- BBC Master control logic
-         if nPGFC = '0' and A(7 downto 0) = "11111111" and MRnW = '0' then
+         if nPGFC = '0' and A(7 downto 0) = x"FF" and MRnW = '0' and Ph12 = '1' then
             cs_pareg <= '0';
          else
             cs_pareg <= '1';
@@ -172,7 +175,7 @@ begin
          -- Set/reset wifi_disable by writing to the LSR-B (&FC35) and
          -- MSR-B (&FC36) registers
          if rising_edge(ph12) then
-            if nPGFC = '0' and (A(7 downto 1) = "0011010" or A(7 downto 1) = "0011011") and MRnW = '0' then
+            if nPGFC = '0' and (A(7 downto 0) = x"35" or A(7 downto 0) = x"36") and MRnW = '0' then
                wifi_disable <= A(0);
             end if;
          end if;
