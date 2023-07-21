@@ -26,7 +26,7 @@
 .wifi_reset     iny                         \ increment pointer to command line
                 lda (line),y                \ load next character
                 and #&DF                    \ convert to upper case
-                cmp #'R'                    \ check if second letter is an R
+                cmp #'R'                    \ check if second letter is an R                
                 bne wifi_badcmd             \ No it's not, go print help info
                 txa                         \ transfer driver command to A
                 jsr wifidriver              \ perform the action
@@ -57,5 +57,3 @@
                 equs " SR   perform soft reset",&0D
                 equs " HR   perform hard reset",&0D,&EA
                 jmp call_claimed
-
-                

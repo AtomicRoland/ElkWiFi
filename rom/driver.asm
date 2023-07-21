@@ -22,11 +22,9 @@
  \ 09 cpmux               21 csyswdtenable
  \ 10 cwlif               22 csyswdtdisable
  \ 11 setbuffer           23 getmuxchannel
- \ 24 disable/enable
- \ 25 cwlapopt
- \ 26 sslbufsize
- \ 27 cipmode
- \ 28 ping
+ \ 24 disable/enable	  25 cwlapopt
+ \ 26 sslbufsize		  27 cipmode
+ \ 28 ping				  
 
  sta save_a                 \ save registers
  stx save_x
@@ -68,7 +66,9 @@
  jsr printtext
  equs "ElkWiFi rom flash utility",&0D,&EA
  jmp do_flash
-
+ 
+\ Sets the UTC offser for NTP. There is no need to interact with the Wi-Fi module therefore called very early in code
+\ One could argue this belongs in the ntp.asm code but this was much easier to place it here because a branch could be used here.
 .entry_table
  equw init
  equw reset
@@ -670,4 +670,6 @@ rts
  jsr send_param_quoted
  jsr send_crlf
  jmp read_response
+ 
+
  
