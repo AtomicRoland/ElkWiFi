@@ -71,6 +71,8 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  jmp wifidriver
 
 .update_cmd                     \ Update command
+ lda #0                         \ clear time zone flag
+ sta tflag
  jsr skipspace1                 \ forward Y pointer to first non-space character
  jsr read_cli_param             \ read first parameter from command line
  cpx #&00                       \ test if any parameter given, x will be > 0
@@ -83,12 +85,18 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  ora #&20                       \ convert lower case
  cmp #'r'                       \ is it an r  (for Release notes)
  beq update_relnotes            \ yes, show the release notes
+ cmp #'t'                       \ update with time zone set
+ beq update_tz
  ldx #(error_bad_option-error_table)
  jmp error                      \ unrecognized option, throw an error
 
 .update_relnotes
  jsr update_show_relnotes       \ show the release notes
  jmp call_claimed               \ end the command
+
+.update_tz                      \
+ lda #1                         \ set time zone update flag
+ sta tflag
 
 .update_start
  jsr checkupdate                \ Get latest version number
@@ -104,6 +112,8 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  bcc update_error
 
  ldy #0                         \ load pointer to compare latest version with current version
+ lda tflag                      \ load time zone flag
+ bne update_found               \ if set then always install the update, even if it's the current version
 .update_compare
  jsr read_buffer                \ read character from received version
  cmp romversion,y               \ compare with current version string
@@ -203,6 +213,18 @@ equs "HOST: www.acornelectron.nl",&0d,&0a,&0d,&0a
  cmp servercrc+1
  bne update_crc_error
 
+ \ The update is downloaded and the CRC is correct. Now set the current
+ \ time zone in the ROM data and set the UART type flag
+ lda uart_type              \ load current UART type
+ sta &5FFE                  \ store in ROM data
+ lda default_tz             \ load default time zone
+ sta &5FFF                  \ store in ROM data
+ lda tflag                  \ check time zone flag
+ beq update_program         \ don't touch the time zone setting
+ jsr GetUtcOff              \ load the current set time zone (utc offset)
+ sty &5FFF                  \ store in ROM data
+
+.update_program
  lda #&FE                   \ load driver function number
  ldx #&02                   \ load rom bank number in EEPROM
  ldy #&20                   \ load start address of new code

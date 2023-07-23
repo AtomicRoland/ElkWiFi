@@ -322,7 +322,9 @@ align &100
 .flashsrc
 incbin "flash.bin"
 
-skipto &C000
+skipto &BFFE
+.uart_type      equb    00          ; UART TYPE (0 = ST16C2552, 8 = TL16C2552)
+.default_tz     equb    00          ; Default time zone
 .romend             
 
 SAVE "elkwifi.rom", atmheader, romend

@@ -355,15 +355,8 @@ equd &00000000	\ 32 bits. Transmit time-stamp fraction of a second.
 	lda (line),y
 	and #&0F					\ Do a simple AND to get number
 .UtcOffWrite
-	pha
-	lda #WriteFred
-	ldx #&FF
-	ldy #0
-	jsr osbyte
-	pla:tay
-	lda #WriteJim
-	ldx #UtcOff
-	jsr osbyte
+    tay                         \ Transfer offset to Y register
+	jsr SetUtcOff               \ Write to storage
 	jmp call_claimed			\ end of command
 
 \ Two characters this can have the following forms:
@@ -405,17 +398,10 @@ equd &00000000	\ 32 bits. Transmit time-stamp fraction of a second.
 	sbc (line),y
 	jmp UtcOffWrite
 
-\ Set the UTC value to 1 
+\ Set the UTC value to the default value
 .SetUTCToZero
-	lda #WriteFred
-	ldx #&FF
-	ldy #0
-	jsr osbyte
-	lda #WriteJim
-	ldx #UtcOff
-	ldy #1
-	jsr osbyte
-	rts
+    jsr GetDefaultOffset        \ Read the default UTC Offset (= time zone)
+    jmp SetUtcOff               \ Write this to storage and return from subroutine
 
 \  Process logic
 .ProcLogic 
@@ -515,7 +501,6 @@ equd &00000000	\ 32 bits. Transmit time-stamp fraction of a second.
 	ldx #&FF
 	ldy #0
 	jsr osbyte
-	\lda #0 : STA &FCFF
 	ldx #0
 	lda #ReadJim
 .GRDL1
@@ -573,7 +558,6 @@ equd &00000000	\ 32 bits. Transmit time-stamp fraction of a second.
 	sty STORE%
 	\ quick test on time data \
 	lda STORE%+3
-	\cmp #0
 	beq GRDND
 	\ Result OK set in receive flag
 	lda #WriteJim
@@ -635,13 +619,7 @@ equd &00000000	\ 32 bits. Transmit time-stamp fraction of a second.
 	txa:pha
 	tya:pha
 	\ Get UTC flag
-	\lda #WriteFred
-	\ldx #&FF
-	\ldy #0
-	\jsr osbyte \ Select page 0
-	lda #ReadJim
-	ldx #UtcOff
-	jsr osbyte  
+	jsr GetUtcOff
 	\ The UTC value can be 0, positive or negative. All need slightly different algoritms. 0 means no action is needed
 	cpy #0
 	beq UTCCEND
@@ -670,7 +648,6 @@ equd &00000000	\ 32 bits. Transmit time-stamp fraction of a second.
 	jsr Sub32
 	jsr NMToSTR
 .UTCCEND
-	\jsr SelPZ 
 	pla:TAY
 	pla:TAX
 	rts
@@ -1348,3 +1325,50 @@ EQUD &00000190
 	dex
 	bpl CNL1
 	rts
+
+
+\ SetUtcOff
+\ Writes UTC Offset (= time zone) from Y register into Paged RAM storage. A and X remain unchanged.
+\ The UFC Offset is stored in the last byte of the last page in the second bank of paged RAM to
+\ try to avoid that is will be overwritten by other software. However, it is not guaranteed that this
+\ will never happen. A faulty offset will only result into a wrong date/time value.
+.SetUtcOff
+    pha                     \ save A
+    jsr save_bank_nr        \ save current RAM bank number
+    jsr set_bank_1          \ select Paged RAM bank 1
+    lda pagereg             \ load page register
+    pha                     \ save it on stack
+    lda #&FF                \ load page number
+    sta pagereg             \ set in page register
+    sty pageram+&FF         \ read UTC offset
+    pla                     \ restore page register
+    sta pagereg
+    jsr restore_bank_nr     \ restore the bank number
+    pla                     \ restore A
+    rts                     \ return from subroutine
+
+
+\ GetUtcOff
+\ Reads UTC Offset (= time zone) from Paged RAM storage into Y. A and X remain unchanged.
+.GetUtcOff
+    pha                     \ save A
+    jsr save_bank_nr        \ save current RAM bank number
+    jsr set_bank_1          \ select Paged RAM bank 1
+    lda pagereg             \ load page register
+    pha                     \ save it on stack
+    lda #&FF                \ load page number
+    sta pagereg             \ set in page register
+    ldy pageram+&FF         \ read UTC offset
+    pla                     \ restore page register
+    sta pagereg
+    jsr restore_bank_nr     \ restore the bank number
+    pla                     \ restore A
+    rts                     \ return from subroutine
+
+\ GetDefaultOff
+\ Reads the default Offset (= time zone) from ROM storage into Y. A and X remain unchanged. Please use
+\ this routine to read the default offset just in case the storage location of the offset gets modified
+\ in the futere.
+.GetDefaultOffset
+    ldy default_tz          \ load default time zone value
+    rts                     \ that's all for now :-)

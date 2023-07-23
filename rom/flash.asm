@@ -184,6 +184,7 @@ uart_mcr = uart+12
 \ Select the active bank for writing a byte to. The bank number is in the X register
 .setbank    pha                 \ save A (it contains the byte that should be written)
             lda mfatable,x      \ load MFA value
+            eor uart_mask       \ adjust to UART Type
             sta uart_mcr        \ write to UART (this sets A15 of the EEPROM)
             lda #&0F
             sta &FE05
