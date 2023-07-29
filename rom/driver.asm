@@ -635,8 +635,6 @@ rts
 
 \ Perform flash
 .do_flash
- lda uart_type          \ read UART type
- sta uart_mask          \ store in workspace for flash routine
  ldx #2                 \ set number of pages to copy
  lda #<flashsrc         \ set source address in zero page
  sta zp
@@ -659,8 +657,8 @@ rts
  inc zp+7               \ increment the msb of the destination pointer
  jmp do_flash1          \ copy the next block
 .do_flash3
- ldx save_x             \ restore bank number to flash
- eor uart_type          \ adjust to UART Type
+ lda save_x             \ restore bank number to flash
+ eor uart_type          \ adjust to UART Type (toggles high bit of ROM bank number)
  ldy save_y             \ restore start address of data
  jmp flashcode          \ start flashing
 

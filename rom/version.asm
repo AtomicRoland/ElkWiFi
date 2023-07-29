@@ -18,6 +18,16 @@
   inx
   cpx #(commands-romtitle)
   bne version_l1
+  ldx #0
+  cpx uart_type
+  beq version_l1b
+  inx
+ .version_l1b
+  lda version_hw,x
+  jsr osasci
+  inx
+  lda version_hw,x
+  jsr osasci
   jsr osnewl
 
   \ Get ESP firemware version
@@ -44,3 +54,5 @@
  ldx #(error_no_response-error_table)
  jmp error
 
+.version_hw
+ equs "STI"

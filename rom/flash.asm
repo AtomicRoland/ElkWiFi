@@ -4,7 +4,7 @@
 \
 \ This code will be included in the EEPROM but is copied to the main memory before it is executed. You can copy it
 \ by executing the WiFi driver function &FE where the Y register contains the high byte of the data to be "burned"
-\ into the EEPROM and the X register contains the bank number within the EEPROM. Always the full 16kB will be "burned".
+\ into the EEPROM and the A register contains the bank number within the EEPROM. Always the full 16kB will be "burned".
 \
 \ Bank 0:   &0000 - &3FFF       mfa = 1     bank = 0
 \ Bank 1:   &4000 - &7FFF       mfa = 1     bank = 1
@@ -32,8 +32,9 @@ uart_mcr = uart+12
 
 
             org flashcode
-\ Start with saving the X and Y registers
-.flash      stx save_x          \ save bank number in the EEPROM
+\ Start with saving the A and Y registers. Versions up to (and including V0.30) called this routine with
+\ the bank number in X. For TI16C2552 support it is more convinient to use A.
+.flash      sta save_x          \ save bank number in the EEPROM
             sty save_y          \ save start address of data
             sei                 \ no more interrupts from here
 
@@ -58,10 +59,10 @@ uart_mcr = uart+12
             sta mfatable+3
             lda &F4             \ load current paged rom number
             and #&06            \ clear lowest bit
-            tay
+            tay                 \ move to Y for odd bank numbers
             sty banktable
             sty banktable+2
-            iny                 \ clear carry for adding
+            iny                 \ increment Y register for even bank numbers
             sty banktable+1
             sty banktable+3
  
@@ -74,17 +75,17 @@ uart_mcr = uart+12
             lda #'*'            \ print a * as progress indicator
             jsr oswrch
             jsr prepare_erase   \ prepare the erase operation
-            sta &9000           \ erase first sector
+            sta &9000           \ erase second sector
             jsr wait            \ wait for completion
             lda #'*'            \ print a * as progress indicator
             jsr oswrch
             jsr prepare_erase   \ prepare the erase operation
-            sta &A000           \ erase first sector
+            sta &A000           \ erase third sector
             jsr wait            \ wait for completion
             lda #'*'            \ print a * as progress indicator
             jsr oswrch
             jsr prepare_erase   \ prepare the erase operation
-            sta &B000           \ erase first sector
+            sta &B000           \ erase fourth sector
             jsr wait            \ wait for completion
             lda #'*'            \ print a * as progress indicator
             jsr oswrch
@@ -151,7 +152,7 @@ uart_mcr = uart+12
             ldx save_x          \ reload bank number in X
             jsr setbank         \ set MFA and bank for the bank number in X
             lda #&30            \ start the erase operation
-            sta uart_thr
+\            sta uart_thr
             rts                 \ ready with preparation
 
 \ Write a byte to the EEPROM. The bank number should be in the X register, the
@@ -160,7 +161,7 @@ uart_mcr = uart+12
             jsr write5555
             lda #&55
             jsr write2AAA
-            sta uart_thr
+\            sta uart_thr
             lda #&A0
             jsr write5555
             ldx save_x          \ reload bank number in X
@@ -184,7 +185,6 @@ uart_mcr = uart+12
 \ Select the active bank for writing a byte to. The bank number is in the X register
 .setbank    pha                 \ save A (it contains the byte that should be written)
             lda mfatable,x      \ load MFA value
-            eor uart_mask       \ adjust to UART Type
             sta uart_mcr        \ write to UART (this sets A15 of the EEPROM)
             lda #&0F
             sta &FE05
@@ -228,7 +228,6 @@ uart_mcr = uart+12
  .printhex_l2       adc #&30                \ add &30 for ascii value
                     jsr osasci              \ print the digit and return
                     rts
-
 
 .flash_end
 

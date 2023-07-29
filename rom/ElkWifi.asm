@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &01                    \ version 0.1x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.30"                 \ Rom version string
+.romversion         equs "0.31"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2023 Roland Leurs"
                     equb 0
@@ -150,11 +150,11 @@ include "electron.asm"
                     jsr osbyte
                     cpx #0                      \ test for soft reset
                     beq autorun_l1
+					jsr SetUTCToZero			\ Set default offset (time zone) for date and time command
                     lda #7                      \ ring the bell on power on and hard reset
                     jsr oswrch
                     cpx #1                      \ was it a power on reset
                     bne autorun_l1              \ no, then jump to the logo print
-					jsr SetUTCToZero			\ FIXME : For NTP set UTC offset to zero after reset. This should be from some config file oid
                     txa                         \ load A with 1 (driver function hardware reset)
                     jsr wifidriver              \ perform a hard reset
 .autorun_l1         jsr print_logo              \ print the logo if wifi is enabled
@@ -323,7 +323,7 @@ align &100
 incbin "flash.bin"
 
 skipto &BFFE
-.uart_type      equb    00          ; UART TYPE (0 = ST16C2552, 8 = TL16C2552)
+.uart_type      equb    00          ; UART TYPE (0 = ST16C2552, 2 = TL16C2552)
 .default_tz     equb    00          ; Default time zone
 .romend             
 

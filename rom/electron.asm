@@ -71,8 +71,7 @@
             datalen = zp+13         \ data length counter, 2 bytes
             crc = zp+15             \ calculated crc, 2 bytes
             servercrc = zp+17       \ received crc, 2 bytes
-            uart_mask = zp+20       \ UART type for flash routine
-						
+
 			mux_status  = &AA
 			mux_channel = &AB     \ need 5 bytes!
 			
