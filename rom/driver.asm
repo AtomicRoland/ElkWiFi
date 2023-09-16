@@ -321,7 +321,7 @@
  ldx save_x
  \ x points to zero page address with control block.
  \ two bytes start address of data
- \ two bytes length
+ \ three bytes length
  lda &0000,x
  sta data_pointer
  lda &0001,x

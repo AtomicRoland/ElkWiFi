@@ -55,4 +55,4 @@
  jmp error
 
 .version_hw
- equs "STI"
+ equs "STL"
