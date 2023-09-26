@@ -22,7 +22,7 @@ include "electron.asm"
                     equb &01                    \ version 0.1x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.31"                 \ Rom version string
+.romversion         equs "0.32"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
                     equs "(C)2023 Roland Leurs"
                     equb 0
@@ -135,6 +135,8 @@ include "electron.asm"
                     pha                         \ the exit value of A depends on the command.
                     txa
                     pha
+                    lda #4                      \ load default time-out value
+                    sta time_out_set            \ set as default value
                     lda #&D7                    \ Turn off default banner
                     ldx #0
                     stx pagereg                 \ reset page register to 0
@@ -287,6 +289,8 @@ include "electron.asm"
                     tay                         \ transfer to Y register
                     pla                         \ restore A (= function number)
                     jsr wifidriver              \ execute the wifi function
+                    stx &F0                     \ store X register in &F0
+                    sty &F1                     \ store Y register in &F1
                     jmp call_claimed            \ return from OSWORD call
 .osword14		 	tya                         \ save X and Y registers
                     pha                         

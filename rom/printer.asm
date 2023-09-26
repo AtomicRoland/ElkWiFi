@@ -302,7 +302,7 @@
 
 .parse_parity_space
  lda #&38                   \ load parity value
- bne parse_parity_set       \ jump always
+ bne parse_parity_set       \ jump always   (????)
 
 .parse_parity_set
  sta parity                 \ set parity value
