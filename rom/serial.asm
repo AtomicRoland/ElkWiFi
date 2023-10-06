@@ -266,7 +266,7 @@ bank_save = save_a
 \ Alternative bank number set routine, shorter and faster
 .set_bank_1         \ set it to 1
  lda uart_mcr       \ load current value
- ora #&08           \ clear bit 3 (MFB)
+ ora #&08           \ set bit 3 (MFB)
  sta uart_mcr       \ write it back
  rts                \ end of routine
 
