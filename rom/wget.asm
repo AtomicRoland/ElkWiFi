@@ -540,6 +540,10 @@
 \ Note to myself: als straks bekend is of een bestand gecomprimeerd is of niet
 \ dan kan ik de waarde voor mfb opslaan in een zeropage adres, dit inlezen en 
 \ instellen met jsr set_bank_a.
+\ Google translate of above:
+\ When it will soon be known whether a file is compressed or not
+\ then I can store the value for mfb in a zeropage address, read it and
+\ set with jsr set_bank_a
 .wget_context_switch_in
  pha                        \ save A
  lda pagereg                \ load page register
