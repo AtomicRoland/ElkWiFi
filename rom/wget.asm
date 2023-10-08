@@ -558,7 +558,7 @@
  sty pr_y
  lda load_addr+1            \ load primary page register
  sta pagereg                \ activate it
- jsr set_bank_0             \ activate the second paged RAM bank
+ jsr set_bank_0             \ activate the primary paged RAM bank
  pla                        \ restore A
  rts                        \ return from subroutine
 
