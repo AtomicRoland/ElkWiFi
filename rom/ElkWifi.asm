@@ -256,7 +256,7 @@ include "electron.asm"
                     equs " VERSION   Print firmware version",&0D
                     equs " WGET      Get a file from a webserver",&0D
                     equs " WICFS     Enable WiFi CFS",&0D
-                    equs " WIFI      WiFi control ON|OFF|HR|SR",&0D
+                    equs " WIFI      WiFi control ON|OFF|HR|SR|Rn",&0D
                     equs " WMENU     start the menu program",&0D
 					equs " TIMEZONE  Sets the UTC offset with LT",&0D
                     nop
