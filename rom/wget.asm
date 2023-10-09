@@ -98,6 +98,8 @@
  beq wget_option_p          \ jump if P
  cmp #'u'                   \ check for U (UEF file)
  beq wget_option_u
+ cmp #'d'                   \ check for D (Generic data file)
+ beq wget_option_u
  cmp #'s'                   \ check for S (Sideway rom)
  beq wget_option_s
  ldx #(error_bad_option-error_table)
