@@ -13,7 +13,7 @@
 \ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters since that option
 \ does not store any contents in memory. If the file has no ATM header the address is required.
 \ 
-\ -D option
+\ -D option TODO: Create data header
 \ This option copies data in the same way as the -U UEF file option, but since no assumptions about the content of the data can 
 \ be made, a simple header is required to allow user programs to easily access the data.
 \ The first four bytes of RAM bank 1 specify the start and end of the data. In the future, additional bytes after this could 
@@ -35,6 +35,7 @@
 \
 \ (c) Roland Leurs, July 2020
 
+                dflag = heap + &F3      \ 1 byte
                 fflag = heap + &F4      \ 1 byte as tube transfer flag, 0= host transfer, &FF=tube transfer
                 proto = heap + &F5      \ 1 byte
                 newln = heap + &F6      \ 1 byte
@@ -47,9 +48,11 @@
                 uflag = heap + &FD      \ 1 byte
                 laddr = heap + &FE      \ 2 bytes
 
-                tubeflag = &27A         \ (Osbyte &EA = 0 if no tube, &FF if tube)
-                tubereg  = &FCE5        \ address of tube data transfer register on electron
-                tubeID   = &E0          \ a number between &C0 and &FF that is my ID for claiming tube interface
+                data_pr_r = 0           \ ram bank 1 page register of start of data
+                data_pr_y = 4           \ ram bank 1 y register of start of data
+                tubeflag  = &27A        \ (Osbyte &EA = 0 if no tube, &FF if tube)
+                tubereg   = &FCE5       \ address of tube data transfer register on electron
+                tubeID    = &E0         \ a number between &C0 and &FF that is my ID for claiming tube interface
                                         \ needs to be sent with bit 6 = 0, ie. between &80 and &BF to release tube
                                         \ unless a run command 4 has been sent
 
@@ -62,6 +65,7 @@
  sta aflag
  sta pflag
  sta uflag
+ sta dflag
  sta proto                  \ default no ssl (i.e. http)
  sta laddr
  sta laddr+1
@@ -99,7 +103,7 @@
  cmp #'u'                   \ check for U (UEF file)
  beq wget_option_u
  cmp #'d'                   \ check for D (Generic data file)
- beq wget_option_u
+ beq wget_option_d
  cmp #'s'                   \ check for S (Sideway rom)
  beq wget_option_s
  ldx #(error_bad_option-error_table)
@@ -126,6 +130,11 @@
 .wget_option_u
  lda #1                     \ set flag to 1
  sta uflag
+ jmp wget_l1                \ jump always (branching is too far)
+
+.wget_option_d
+ lda #1                     \ set flag to 1
+ sta dflag
  jmp wget_l1                \ jump always (branching is too far)
 
 .wget_option_s
@@ -423,30 +432,42 @@
  jsr wget_read_atm_header   \ read the ATM header
 
 .wget_set_load_addr
+ lda uflag                  \ is it an UEF file?
+ beq .wget_check_s_option   \ if no, then check for S option
+ ldx #0                     \ reset paged RAM register
+ ldy #0                     \ reset pointer to paged RAM
+ jmp wget_setup_rbank1
+.wget_check_s_option
+ lda sflag                  \ is it a SW ROM file?
+ beq wget_check_d_option    \ if no, then check for D option
+ ldx #&20                   \ load SW ROM files from page &20 to save WiDFS work space
+ ldy #0                     \ reset pointer to paged RAM
+ jmp wget_setup_rbank1
+.wget_check_d_option
+ lda dflag                  \ is it a data file?
+ beq wget_set_load_addr_l1  \ If no, then setup specified or default load address 
+ ldx data_pr_r              \ reset paged RAM register
+ ldy data_pr_y              \ Set pointer to paged RAM to allow space for data header
+ jmp wget_setup_rbank1
+.wget_set_load_addr_l1
  lda laddr                  \ check if there is a load address by now
  ora laddr+1
- bne wget_set_load_addr_l1  \ yes, there is a load address so jump
+ bne wget_set_load_addr_l2  \ yes, there is a load address so no need to set default
  jsr wget_set_default_load  \ otherwise set the default load address (PAGE on Electron, ?#12 on Atom)
-.wget_set_load_addr_l1
- lda uflag                  \ is it an UEF file?
- beq wget_set_load_addr_l3  \ no, then jump to store the load address in zero page
- ldy #0                     \ reset pointer to paged RAM
 .wget_set_load_addr_l2
- sty pr_r                   \ set "second page register"
- ldy #0                     \ reset pointer to paged RAM (necessary if S flag set!)
- sty pr_y                   \ set "second page pointer"
- sty sbufl                  \ reset tape length counter
- sty sbufh
- beq wget_crd_loop          \ jump always
-.wget_set_load_addr_l3
- ldy #&20                   \ load SW ROM files from page &20 to save WiDFS work space
- lda sflag                  \ is it a SW ROM file?
- bne wget_set_load_addr_l2  \ if so, treat it like an UEF file
  lda laddr                  \ copy load address to zero page
  sta load_addr
  lda laddr+1
  sta load_addr+1
+ jmp wget_crd_loop
  
+ .wget_setup_rbank1         \ U, S and D options are handled the same way
+ stx pr_r                   \ set "second page register"
+ sty pr_y                   \ set "second page pointer"
+ ldy #0                     \ reset tape length counter
+ sty sbufl
+ sty sbufh
+
 .wget_crd_loop              \ copy received data
  lda tflag                  \ check for X or T-flag (if set, dump data to screen)
  bne wget_dump_data
