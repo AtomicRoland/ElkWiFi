@@ -433,7 +433,7 @@
 
 .wget_set_load_addr
  lda uflag                  \ is it an UEF file?
- beq .wget_check_s_option   \ if no, then check for S option
+ beq wget_check_s_option   \ if no, then check for S option
  ldx #0                     \ reset paged RAM register
  ldy #0                     \ reset pointer to paged RAM
  jmp wget_setup_rbank1
