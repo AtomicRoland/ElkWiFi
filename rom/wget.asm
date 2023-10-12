@@ -446,8 +446,8 @@
 .wget_check_d_option
  lda dflag                  \ is it a data file?
  beq wget_set_load_addr_l1  \ If no, then setup specified or default load address 
- ldx #data_pr_r              \ reset paged RAM register
- ldy #data_pr_y              \ Set pointer to paged RAM to allow space for data header
+ ldx #data_pr_r             \ reset paged RAM register
+ ldy #data_pr_y             \ Set pointer to paged RAM to allow space for data header
  jmp wget_setup_rbank1
 .wget_set_load_addr_l1
  lda laddr                  \ check if there is a load address by now
@@ -475,6 +475,8 @@
  bne wget_read_uef_data 
  lda sflag                  \ check for S-flag (if set, also keep data in paged RAM)
  bne wget_read_uef_data 
+ lda dflag                  \ check for D-flag (if set, also keep data in paged RAM)
+ bne wget_read_uef_data
  jsr wget_read_http_data    \ read received data block
  jmp wget_crd_l1            \ jump for next block
 .wget_dump_data
