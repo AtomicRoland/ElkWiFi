@@ -446,8 +446,8 @@
 .wget_check_d_option
  lda dflag                  \ is it a data file?
  beq wget_set_load_addr_l1  \ If no, then setup specified or default load address 
- ldx data_pr_r              \ reset paged RAM register
- ldy data_pr_y              \ Set pointer to paged RAM to allow space for data header
+ ldx #data_pr_r              \ reset paged RAM register
+ ldy #data_pr_y              \ Set pointer to paged RAM to allow space for data header
  jmp wget_setup_rbank1
 .wget_set_load_addr_l1
  lda laddr                  \ check if there is a load address by now
