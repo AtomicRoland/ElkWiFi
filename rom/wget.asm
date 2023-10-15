@@ -48,7 +48,6 @@
                 uflag = heap + &FD      \ 1 byte
                 laddr = heap + &FE      \ 2 bytes
 
-                data_pr_r = 0           \ ram bank 1 page register of start of data
                 data_pr_y = 4           \ ram bank 1 y register of start of data
                 tubeflag  = &27A        \ (Osbyte &EA = 0 if no tube, &FF if tube)
                 tubereg   = &FCE5       \ address of tube data transfer register on electron
@@ -433,21 +432,24 @@
 
 .wget_set_load_addr
  lda uflag                  \ is it an UEF file?
- beq wget_check_s_option   \ if no, then check for S option
- ldx #0                     \ reset paged RAM register
- ldy #0                     \ reset pointer to paged RAM
+ beq wget_check_s_option    \ if no, then check for S option
+ ldy #0                     \ set "second page pointer"
+ sty pr_y
+ ldy #0                     \ Set "second page register"
  jmp wget_setup_rbank1
 .wget_check_s_option
  lda sflag                  \ is it a SW ROM file?
  beq wget_check_d_option    \ if no, then check for D option
- ldx #&20                   \ load SW ROM files from page &20 to save WiDFS work space
- ldy #0                     \ reset pointer to paged RAM
+ ldy #0                     \ set "second page pointer" (necessary if S flag set!)
+ sty pr_y
+ ldy #&20                   \ load SW ROM files from page &20 to save WiDFS work space
  jmp wget_setup_rbank1
 .wget_check_d_option
  lda dflag                  \ is it a data file?
- beq wget_set_load_addr_l1  \ If no, then setup specified or default load address 
- ldx #data_pr_r             \ reset paged RAM register
- ldy #data_pr_y             \ Set pointer to paged RAM to allow space for data header
+ beq wget_set_load_addr_l1  \ If no, then setup specified or default load address
+ ldy #data_pr_y             \ set "second page pointer" to allow space for data header
+ sty pr_y
+ ldy #0                     \ Set "second page register" 
  jmp wget_setup_rbank1
 .wget_set_load_addr_l1
  lda laddr                  \ check if there is a load address by now
@@ -462,10 +464,9 @@
  jmp wget_crd_loop
  
  .wget_setup_rbank1         \ U, S and D options are handled the same way
- stx pr_r                   \ set "second page register"
- sty pr_y                   \ set "second page pointer"
- ldy #0                     \ reset tape length counter
- sty sbufl
+ sty pr_r                   \ set "second page register"
+ ldy #0
+ sty sbufl                  \ reset tape length counter
  sty sbufh
 
 .wget_crd_loop              \ copy received data
