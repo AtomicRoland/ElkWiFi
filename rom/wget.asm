@@ -433,24 +433,22 @@
 .wget_set_load_addr
  lda uflag                  \ is it an UEF file?
  beq wget_check_s_option    \ if no, then check for S option
- ldy #0
- sty pr_y                   \ set "second page pointer"
- ldy #0                     \ Set "second page register"
- jmp wget_setup_rbank1
+ ldy #0                     \ set "second page pointer"
+ lda #0                     \ set "second page register"
+ jmp wget_setup_registers
 .wget_check_s_option
  lda sflag                  \ is it a SW ROM file?
  beq wget_check_d_option    \ if no, then check for D option
- ldy #0
- sty pr_y                   \ set "second page pointer" (necessary if S flag set!)
- ldy #&20                   \ load SW ROM files from page &20 to save WiDFS work space
- jmp wget_setup_rbank1
+ ldy #0                     \ set "second page pointer" (necessary if S flag set!)
+ lda #&20                   \ load SW ROM files from page &20 to save WiDFS work space
+ jmp wget_setup_registers
 .wget_check_d_option
  lda dflag                  \ is it a data file?
  beq wget_set_load_addr_l1  \ If no, then setup specified or default load address
  ldy #data_pr_y             \ set "second page pointer" to allow space for data header
- sty pr_y
- ldy #0                     \ Set "second page register" 
- jmp wget_setup_rbank1
+ jsr write_data_header
+ lda #0                     \ Set "second page register" 
+ jmp wget_setup_registers
 .wget_set_load_addr_l1
  lda laddr                  \ check if there is a load address by now
  ora laddr+1
@@ -463,8 +461,23 @@
  sta load_addr+1
  jmp wget_crd_loop
  
- .wget_setup_rbank1         \ U, S and D options are handled the same way
- sty pr_r                   \ set "second page register"
+.write_data_header
+ jsr set_bank_1
+ sty pageram                \ second page pointer for start of data
+ lda 0
+ sta pageram+1              \ second page register for start of data
+ tya
+ clc
+ adc datalen
+ sta pageram+2              \ set pointer to byte after end of data
+ adc datalen+1
+ sta pageram+3              \ set register to byte after end of data
+ jsr set_bank_0
+ rts                        \ return from subroutine
+
+.wget_setup_registers       \ U, S and D options are handled the same way
+ sta pr_r                   \ set "second page register"
+ sty pr_y                   \ set "second page pointer"
  ldy #0
  sty sbufl                  \ reset tape length counter
  sty sbufh
