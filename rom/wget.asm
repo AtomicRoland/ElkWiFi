@@ -433,15 +433,15 @@
 .wget_set_load_addr
  lda uflag                  \ is it an UEF file?
  beq wget_check_s_option    \ if no, then check for S option
- ldy #0                     \ set "second page pointer"
- sty pr_y
+ ldy #0
+ sty pr_y                   \ set "second page pointer"
  ldy #0                     \ Set "second page register"
  jmp wget_setup_rbank1
 .wget_check_s_option
  lda sflag                  \ is it a SW ROM file?
  beq wget_check_d_option    \ if no, then check for D option
- ldy #0                     \ set "second page pointer" (necessary if S flag set!)
- sty pr_y
+ ldy #0
+ sty pr_y                   \ set "second page pointer" (necessary if S flag set!)
  ldy #&20                   \ load SW ROM files from page &20 to save WiDFS work space
  jmp wget_setup_rbank1
 .wget_check_d_option
