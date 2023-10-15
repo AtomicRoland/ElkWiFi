@@ -462,17 +462,25 @@
  jmp wget_crd_loop
  
 .write_data_header
- jsr set_bank_1
- sty pageram                \ second page pointer for start of data
- lda 0
- sta pageram+1              \ second page register for start of data
- tya
- clc
- adc datalen
- sta pageram+2              \ set pointer to byte after end of data
- adc datalen+1
- sta pageram+3              \ set register to byte after end of data
- jsr set_bank_0
+ lda pagereg
+ pha                        \ save current value of page register to stack
+ lda #0
+ sta pagereg                \ set page register to start of RAM
+ jsr set_bank_1             \ switch to RAM bank 1
+ ldy #data_pr_y
+ sty pageram                \ set low byte of start of data
+ lda #0
+ sta pageram+1              \ set high byte of start of data
+ tya                        \ get low byte of pointer to start of data
+ clc                        \ ensure carry is cleared
+ adc blocksize              \ add low byte of blocksize and pointer to data start
+ sta pageram+2              \ set low byte of pointer to byte after end of data
+ lda #0
+ adc blocksize+1            \ add carry plus high byte of blocksize
+ sta pageram+3              \ set high byte of pointer to byte after end of data
+ pla
+ sta pagereg                \ restore original value of the page register
+ jsr set_bank_0             \ switch to RAM bank 0
  rts                        \ return from subroutine
 
 .wget_setup_registers       \ U, S and D options are handled the same way
