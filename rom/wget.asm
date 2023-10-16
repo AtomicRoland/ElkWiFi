@@ -10,28 +10,30 @@
 \            -D        optional    the file is generic data
 \            url       required    the url of the file, including http(s)://
 \            address   optional    load address of the file
-\ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters since that option
-\ does not store any contents in memory. If the file has no ATM header the address is required.
+\ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters
+\ since that option does not store any contents in memory. If the file has no ATM header the address is required.
 \ 
-\ -D option TODO: Create data header
-\ This option copies data in the same way as the -U UEF file option, but since no assumptions about the content of the data can 
-\ be made, a simple header is required to allow user programs to easily access the data.
-\ The first four bytes of RAM bank 1 specify the start and end of the data. In the future, additional bytes after this could 
-\ be defined to provide new functionality. Avoiding a fixed start address provides some future proofing.
+\ -D option
+\ This option copies data in the same way as the -U UEF file option, but since no assumptions about the content of the
+\ data can be made, a simple header is required to allow user programs to easily access the data. This allows the data
+\ to remain in paged RAM, leaving Electron RAM free for user programs.
+\ The first four bytes of RAM bank 1 specify the start and end of the data. In the future, additional bytes after this 
+\ could be defined to provide new functionality. Avoiding a fixed start address provides some future proofing.
 \ &0000 - &0001  <START> Address of first byte of data. 
-\ &0002 - &0003  <END>   Address of first free byte of memory after the data. Valid after data has been copied from WiFi interface.
+\ &0002 - &0003  <END>   Address of first free byte of memory after the data.
 \ Reading and over-writing of data can be accomplished using the information in the first four bytes.
 \ Possible future enhancements:
-\ Data from multiple WiFi accesses could be stored consecutively, in which case an equivalent four byte header could appear at the 
-\ end of the first data block to identify the start and end of a subsequent data block.
+\ Data from multiple WiFi accesses could be stored consecutively, in which case an equivalent four byte header could 
+\ appear at the end of the first data block to identify the start and end of a subsequent data block.
 \ The following commands could be developed to provide enhanced access to the data.
 \ *DINSERT <n> <source_addr> <dest_addr> 
 \ Insert n bytes of data stored in main RAM at <source_addr> into RAM bank 1 starting
 \ from <dest_addr>. Data after <dest_addr> is shifted in memory to avoid over-writing data.
 \ *DFIND <n> <key_addr> <found_addr> <start_addr> <end_addr> 
-\ Search for matching n bytes of data stored in main RAM at <key_addr>. If a match is found, its RAM bank 1 address is stored in the
-\ two bytes in main RAM pointed to by <found_addr>. <found_addr> is set to zero if no match is found. <start_addr> and <end_addr>
-\ are optional arguments. If they are not present then the values at RAM bank 1 &0000 and &0002 will be used (<START> and <END>).
+\ Search for matching n bytes of data stored in main RAM at <key_addr>. If a match is found, its RAM bank 1 address
+\ is stored in the two bytes in main RAM pointed to by <found_addr>. <found_addr> is set to zero if no match is found. 
+\ <start_addr> and <end_addr> are optional arguments. If they are not present then the values at RAM bank 1 &0000 and
+\ &0002 will be used (<START> and <END>).
 \
 \ (c) Roland Leurs, July 2020
 
