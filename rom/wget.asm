@@ -50,7 +50,8 @@
                 uflag = heap + &FD      \ 1 byte
                 laddr = heap + &FE      \ 2 bytes
 
-                data_pr_y = 4           \ ram bank 1 y register of start of data
+                data_pr_y = 4           \ ram bank 1 pointer to start of data. This value can be updated in future
+                                        \ code without breaking backwards compatibility.
                 tubeflag  = &27A        \ (Osbyte &EA = 0 if no tube, &FF if tube)
                 tubereg   = &FCE5       \ address of tube data transfer register on electron
                 tubeID    = &E0         \ a number between &C0 and &FF that is my ID for claiming tube interface
@@ -475,11 +476,11 @@
  sta pageram+1              \ set high byte of start of data
  tya                        \ get low byte of pointer to start of data
  clc                        \ ensure carry is cleared
- adc blocksize              \ add low byte of blocksize and pointer to data start
- sta pageram+2              \ set low byte of pointer to byte after end of data
+ adc blocksize              \ add low byte of blocksize to data start
+ sta pageram+2              \ set low byte of end of data
  lda #0
  adc blocksize+1            \ add carry plus high byte of blocksize
- sta pageram+3              \ set high byte of pointer to byte after end of data
+ sta pageram+3              \ set high byte of end of data
  pla
  sta pagereg                \ restore original value of the page register
  jsr set_bank_0             \ switch to RAM bank 0
