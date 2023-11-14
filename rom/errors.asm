@@ -9,7 +9,7 @@
 .error                      lda #&00                \ Break opcode
                             tay                     \ copy to Y-reg
                             sta errorspace          \ set in non-sideways memory
-                            lda #&00                \ Error number
+                            lda #&DC                \ Error number
                             sta errorspace+1
 .error_loop                 lda error_table,x       \ load character from error string
                             cmp #&0D                \ test end-of-string
