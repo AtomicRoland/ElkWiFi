@@ -65,7 +65,7 @@
             databits = zp+10
             stopbits = zp+11
 
-			buffer_ptr = zp+9       \ buffer_ptr and data_pointer must be adjescent!
+			buffer_ptr = zp+9       \ buffer_ptr and data_pointer must be adjacent!
 			data_pointer = zp+11    \ a.k.a. data length
             size = zp+11            \ indeed, same as data_pointer
             needle = zp+12          \ may overlap with data_pointer, 2 bytes

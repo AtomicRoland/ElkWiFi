@@ -1,5 +1,5 @@
 \ WGET command
-\ Syntax:    *WGET [-T | -X | -A | -P | -U | -S | -F] <url> [address]
+\ Syntax:    *WGET [-T | -X | -A | -P | -U | -S | -F | -D] <url> [address]
 \ Option:    -T        optional    print the downloaded file directly on the screen, newline by &0D
 \            -X        optional    print the downloaded file directly on the screen, newline by &0A
 \            -A        optional    the file has an ATM header
@@ -7,13 +7,37 @@
 \            -U        optional    the file is a UEF file
 \            -S        optional    the file is a sideways rom, specify banknumber in address parameter
 \            -F        optional    force file to load in host if second processor present
+\            -D        optional    the file is generic data
 \            url       required    the url of the file, including http(s)://
 \            address   optional    load address of the file
-\ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters since that option
-\ does not store any contents in memory. If the file has no ATM header the address is required.
+\ The address will override the load address in the ATM header (if any). It will be ignored with the -T parameters
+\ since that option does not store any contents in memory. If the file has no ATM header the address is required.
 \ 
+\ -D option
+\ This option copies data in the same way as the -U UEF file option, but since no assumptions about the content of the
+\ data can be made, a simple header is required to allow user programs to easily access the data. This allows the data
+\ to remain in paged RAM, leaving Electron RAM free for user programs.
+\ The first four bytes of RAM bank 1 specify the start and end of the data. In the future, additional bytes after this 
+\ could be defined to provide new functionality. Avoiding a fixed start address provides some future proofing.
+\ &0000 - &0001  <START> Address of first byte of data. 
+\ &0002 - &0003  <END>   Address of first free byte of memory after the data.
+\ Reading and over-writing of data can be accomplished using the information in the first four bytes.
+\ Possible future enhancements:
+\ Data from multiple WiFi accesses could be stored consecutively, in which case an equivalent four byte header could 
+\ appear at the end of the first data block to identify the start and end of a subsequent data block.
+\ The following commands could be developed to provide enhanced access to the data.
+\ *DINSERT <n> <source_addr> <dest_addr> 
+\ Insert n bytes of data stored in main RAM at <source_addr> into RAM bank 1 starting
+\ from <dest_addr>. Data after <dest_addr> is shifted in memory to avoid over-writing data.
+\ *DFIND <n> <key_addr> <found_addr> <start_addr> <end_addr> 
+\ Search for matching n bytes of data stored in main RAM at <key_addr>. If a match is found, its RAM bank 1 address
+\ is stored in the two bytes in main RAM pointed to by <found_addr>. <found_addr> is set to zero if no match is found. 
+\ <start_addr> and <end_addr> are optional arguments. If they are not present then the values at RAM bank 1 &0000 and
+\ &0002 will be used (<START> and <END>).
+\
 \ (c) Roland Leurs, July 2020
 
+                dflag = heap + &F3      \ 1 byte
                 fflag = heap + &F4      \ 1 byte as tube transfer flag, 0= host transfer, &FF=tube transfer
                 proto = heap + &F5      \ 1 byte
                 newln = heap + &F6      \ 1 byte
@@ -26,9 +50,11 @@
                 uflag = heap + &FD      \ 1 byte
                 laddr = heap + &FE      \ 2 bytes
 
-                tubeflag = &27A         \ (Osbyte &EA = 0 if no tube, &FF if tube)
-                tubereg  = &FCE5        \ address of tube data transfer register on electron
-                tubeID   = &E0          \ a number between &C0 and &FF that is my ID for claiming tube interface
+                data_pr_y = 4           \ ram bank 1 pointer to start of data. This value can be updated in future
+                                        \ code without breaking backwards compatibility.
+                tubeflag  = &27A        \ (Osbyte &EA = 0 if no tube, &FF if tube)
+                tubereg   = &FCE5       \ address of tube data transfer register on electron
+                tubeID    = &E0         \ a number between &C0 and &FF that is my ID for claiming tube interface
                                         \ needs to be sent with bit 6 = 0, ie. between &80 and &BF to release tube
                                         \ unless a run command 4 has been sent
 
@@ -41,6 +67,7 @@
  sta aflag
  sta pflag
  sta uflag
+ sta dflag
  sta proto                  \ default no ssl (i.e. http)
  sta laddr
  sta laddr+1
@@ -77,6 +104,8 @@
  beq wget_option_p          \ jump if P
  cmp #'u'                   \ check for U (UEF file)
  beq wget_option_u
+ cmp #'d'                   \ check for D (Generic data file)
+ beq wget_option_d
  cmp #'s'                   \ check for S (Sideway rom)
  beq wget_option_s
  ldx #(error_bad_option-error_table)
@@ -103,6 +132,11 @@
 .wget_option_u
  lda #1                     \ set flag to 1
  sta uflag
+ jmp wget_l1                \ jump always (branching is too far)
+
+.wget_option_d
+ lda #1                     \ set flag to 1
+ sta dflag
  jmp wget_l1                \ jump always (branching is too far)
 
 .wget_option_s
@@ -400,30 +434,65 @@
  jsr wget_read_atm_header   \ read the ATM header
 
 .wget_set_load_addr
+ lda uflag                  \ is it an UEF file?
+ beq wget_check_s_option    \ if no, then check for S option
+ ldy #0                     \ set "second page pointer"
+ lda #0                     \ set "second page register"
+ jmp wget_setup_registers
+.wget_check_s_option
+ lda sflag                  \ is it a SW ROM file?
+ beq wget_check_d_option    \ if no, then check for D option
+ ldy #0                     \ set "second page pointer" (necessary if S flag set!)
+ lda #&20                   \ load SW ROM files from page &20 to save WiDFS work space
+ jmp wget_setup_registers
+.wget_check_d_option
+ lda dflag                  \ is it a data file?
+ beq wget_set_load_addr_l1  \ If no, then setup specified or default load address
+ ldy #data_pr_y             \ set "second page pointer" to allow space for data header
+ jsr write_data_header
+ lda #0                     \ Set "second page register" 
+ jmp wget_setup_registers
+.wget_set_load_addr_l1
  lda laddr                  \ check if there is a load address by now
  ora laddr+1
- bne wget_set_load_addr_l1  \ yes, there is a load address so jump
+ bne wget_set_load_addr_l2  \ yes, there is a load address so no need to set default
  jsr wget_set_default_load  \ otherwise set the default load address (PAGE on Electron, ?#12 on Atom)
-.wget_set_load_addr_l1
- lda uflag                  \ is it an UEF file?
- beq wget_set_load_addr_l3  \ no, then jump to store the load address in zero page
- ldy #0                     \ reset pointer to paged RAM
 .wget_set_load_addr_l2
- sty pr_r                   \ set "second page register"
- ldy #0                     \ reset pointer to paged RAM (necessary if S flag set!)
- sty pr_y                   \ set "second page pointer"
- sty sbufl                  \ reset tape length counter
- sty sbufh
- beq wget_crd_loop          \ jump always
-.wget_set_load_addr_l3
- ldy #&20                   \ load SW ROM files from page &20 to save WiDFS work space
- lda sflag                  \ is it a SW ROM file?
- bne wget_set_load_addr_l2  \ if so, treat it like an UEF file
  lda laddr                  \ copy load address to zero page
  sta load_addr
  lda laddr+1
  sta load_addr+1
+ jmp wget_crd_loop
  
+.write_data_header
+ lda pagereg
+ pha                        \ save current value of page register to stack
+ lda #0
+ sta pagereg                \ set page register to start of RAM
+ jsr set_bank_1             \ switch to RAM bank 1
+ ldy #data_pr_y
+ sty pageram                \ set low byte of start of data
+ lda #0
+ sta pageram+1              \ set high byte of start of data
+ tya                        \ get low byte of pointer to start of data
+ clc                        \ ensure carry is cleared
+ adc blocksize              \ add low byte of blocksize to data start
+ sta pageram+2              \ set low byte of end of data
+ lda #0
+ adc blocksize+1            \ add carry plus high byte of blocksize
+ sta pageram+3              \ set high byte of end of data
+ pla
+ sta pagereg                \ restore original value of the page register
+ jsr set_bank_0             \ switch to RAM bank 0
+ rts                        \ return from subroutine
+
+.wget_setup_registers       \ U, S and D options are handled the same way
+ sta pr_r                   \ set "second page register"
+ sty pr_y                   \ set "second page pointer"
+ ldy #0
+ sty sbufl                  \ reset tape length counter
+ sty sbufh
+
 .wget_crd_loop              \ copy received data
  lda tflag                  \ check for X or T-flag (if set, dump data to screen)
  bne wget_dump_data
@@ -431,6 +500,8 @@
  bne wget_read_uef_data 
  lda sflag                  \ check for S-flag (if set, also keep data in paged RAM)
  bne wget_read_uef_data 
+ lda dflag                  \ check for D-flag (if set, also keep data in paged RAM)
+ bne wget_read_uef_data
  jsr wget_read_http_data    \ read received data block
  jmp wget_crd_l1            \ jump for next block
 .wget_dump_data
@@ -519,6 +590,10 @@
 \ Note to myself: als straks bekend is of een bestand gecomprimeerd is of niet
 \ dan kan ik de waarde voor mfb opslaan in een zeropage adres, dit inlezen en 
 \ instellen met jsr set_bank_a.
+\ Google translate of above:
+\ When it will soon be known whether a file is compressed or not
+\ then I can store the value for mfb in a zeropage address, read it and
+\ set with jsr set_bank_a
 .wget_context_switch_in
  pha                        \ save A
  lda pagereg                \ load page register
@@ -537,7 +612,7 @@
  sty pr_y
  lda load_addr+1            \ load primary page register
  sta pagereg                \ activate it
- jsr set_bank_0             \ activate the second paged RAM bank
+ jsr set_bank_0             \ activate the primary paged RAM bank
  pla                        \ restore A
  rts                        \ return from subroutine
 
