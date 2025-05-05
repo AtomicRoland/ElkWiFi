@@ -73,8 +73,10 @@
             crc = zp+15             \ calculated crc, 2 bytes
             servercrc = zp+17       \ received crc, 2 bytes
 
-			mux_status  = &AA
-			mux_channel = &AB     \ need 5 bytes!
+			mux_status  = &8000     \ Mux is disabled from version 0.34
+	                                \ because of an incompatibility with the RAMUTILS
+	                                \ (See issue #8 in GitHub)
+			mux_channel = &AB       \ need 5 bytes!
 			
 
 ORG &8000-22         ; it's a sideway ROM service and it containts an ATM header

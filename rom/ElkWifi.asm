@@ -22,9 +22,9 @@ include "electron.asm"
                     equb &01                    \ version 0.1x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.33"                 \ Rom version string
+.romversion         equs "0.34"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
-                    equs "(C)2023 Roland Leurs"
+                    equs "(C)2025 Roland Leurs"
                     equb 0
 
 \ Command table
@@ -52,10 +52,10 @@ include "electron.asm"
                     pha                         \ the exit value of A depends on the command.
                     txa
                     pha
-                    ldx #&FF                    \ load index register, one byte before command table
                     cld                         \ clear decimal flag
-.command_x4         ldy #0                      \ reset Y pointer to beginning of command line
-                    jsr skipspace               \ forward Y pointer to first non-space character
+                    ldx #&FF                    \ load index register, one byte before command table
+                    sty save_y
+.command_x4         ldy save_y                  \ reset pointer
                     dey                         \ set pointer to beginning of command
 .command_x2         iny                         \ increment pointer
                     inx                         \ increment index
@@ -331,5 +331,4 @@ skipto &BFFE
 .default_tz     equb    00          ; Default time zone
 .romend             
 
-SAVE "elkwifi.rom", atmheader, romend
-SAVE "bbcwifi.rom", romstart, romend
+SAVE "elkwifi.rom", romstart, romend

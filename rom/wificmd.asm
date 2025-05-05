@@ -70,6 +70,6 @@
                 equs " OFF  disable wifi",&0D
                 equs " SR   perform soft reset",&0D
                 equs " HR   perform hard reset",&0D
-                equs " R0  select RAM bank 0",&0D
-                equs " R1  select RAM bank 1",&0D,&EA
+                equs " R0   select RAM bank 0",&0D
+                equs " R1   select RAM bank 1",&0D,&EA
                 jmp call_claimed

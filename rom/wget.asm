@@ -80,7 +80,7 @@
  cpx #&00                   \ test if any parameter given, x will be > 0
  bne wget_read_params       \ continue if one parameter is on the command line
  jsr printtext              \ no parameter, print a message
- equs "Usage: WGET [-TXAPUSF] <url> [address]",&0D,&EA
+ equs "Usage: WGET [-TXAPUSFD] <url> [address]",&0D,&EA
  jmp call_claimed           \ end of command
 
 .wget_read_params
@@ -97,6 +97,7 @@
  cmp #'t'                   \ check for T (text file)
  beq wget_option_t          \ jump if T
  cmp #'a'                   \ check for A (ATM header)
+ beq wget_option_a          \ jump if A
  beq wget_option_a          \ jump if A
  cmp #'x'                   \ check for X (unix text file)
  beq wget_option_x          \ jump if X
@@ -472,18 +473,32 @@
  jsr set_bank_1             \ switch to RAM bank 1
  ldy #data_pr_y
  sty pageram                \ set low byte of start of data
+ sty pageram+2              \ set low byte of start of data
  lda #0
  sta pageram+1              \ set high byte of start of data
- tya                        \ get low byte of pointer to start of data
- clc                        \ ensure carry is cleared
- adc blocksize              \ add low byte of blocksize to data start
- sta pageram+2              \ set low byte of end of data
- lda #0
- adc blocksize+1            \ add carry plus high byte of blocksize
- sta pageram+3              \ set high byte of end of data
+ sta pageram+3              \ set high byte of start of data
  pla
  sta pagereg                \ restore original value of the page register
  jsr set_bank_0             \ switch to RAM bank 0
+ rts                        \ return from subroutine
+
+.set_data_header
+ lda pagereg                \ load the page register
+ pha                        \ save current value of page register to stack
+ lda #0
+ sta pagereg                \ set page register to start of RAM
+ jsr set_bank_1             \ switch to RAM bank 1
+ clc                        \ clear carry for addition
+ lda pageram                \ load start address (lo) of data
+ adc sbufl                  \ add lower part of data length
+ sta pageram+2              \ write it to memory
+ lda pageram+1              \ load start address (hi) of data
+ adc sbufh                  \ add lower part of data length
+ adc #1                     \ add 1 to point to first available address
+ sta pageram+3              \ write it to memory
+ jsr set_bank_0             \ restore memory bank 0
+ pla                        \ restore page register
+ sta pagereg
  rts                        \ return from subroutine
 
 .wget_setup_registers       \ U, S and D options are handled the same way
@@ -534,7 +549,7 @@
 \ Store tape length in paged RAM
 .wget_crd_end_l1
  lda uflag                  \ test if UEF file
- beq wget_close             \ it's not, jump
+ beq wget_crd_end_l2        \ it's not, jump to check raw data
  jsr wget_context_switch_in
  lda #&FF
  sta pagereg
@@ -542,6 +557,11 @@
  sta &FDFE
  lda sbufh
  sta &FDFF
+
+.wget_crd_end_l2
+ lda dflag
+ beq wget_close
+ jsr set_data_header
  jsr wget_context_switch_out
 
 \ Close connection
