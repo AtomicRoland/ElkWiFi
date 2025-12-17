@@ -19,7 +19,7 @@
  ldx #5                     \ Number of pings to do
  stx size                   \ store in workspace
  ldx #32                    \ quite long time out
- stx time_out    
+ stx time_out_set
 .ping_loop
  ldx #>strbuf               \ load pointer to hostname or IP
  ldy #<strbuf

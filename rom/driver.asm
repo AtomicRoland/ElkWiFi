@@ -22,11 +22,9 @@
  \ 09 cpmux               21 csyswdtenable
  \ 10 cwlif               22 csyswdtdisable
  \ 11 setbuffer           23 getmuxchannel
- \ 24 disable/enable
- \ 25 cwlapopt
- \ 26 sslbufsize
- \ 27 cipmode
- \ 28 ping
+ \ 24 disable/enable	  25 cwlapopt
+ \ 26 sslbufsize		  27 cipmode
+ \ 28 ping				  29 time out value
 
  sta save_a                 \ save registers
  stx save_x
@@ -43,8 +41,6 @@
 .wifi_init_uart
  jsr init_uart              \ initialize the uart
  sta AP5_disable            \ disable the ls245 on the AP5 to avoid conflicts with paged RAM
- lda #4                     \ set default time-out
- sta time_out
  jsr send_command           \ send ECHO OFF to ESP device
  equs "ATE0",&0D
  jsr read_response          \ wait for echo off to complete
@@ -68,7 +64,9 @@
  jsr printtext
  equs "ElkWiFi rom flash utility",&0D,&EA
  jmp do_flash
-
+ 
+\ Sets the UTC offser for NTP. There is no need to interact with the Wi-Fi module therefore called very early in code
+\ One could argue this belongs in the ntp.asm code but this was much easier to place it here because a branch could be used here.
 .entry_table
  equw init
  equw reset
@@ -99,7 +97,7 @@
  equw sslbufsize
  equw cipmode
  equw ping
- equw reserved
+ equw set_time_out
  equw reserved
  equw reserved
  equw reserved
@@ -321,7 +319,7 @@
  ldx save_x
  \ x points to zero page address with control block.
  \ two bytes start address of data
- \ two bytes length
+ \ three bytes length
  lda &0000,x
  sta data_pointer
  lda &0001,x
@@ -351,8 +349,8 @@
  .smb2
  jsr dec_data_counter
  bne smb1
- lda #4                 \ set time out
- sta time_out
+ lda time_out_set       \ load time out value
+ sta time_out           \ set time out
  jmp uart_get_response  \ use alternative routine to get the response
  
 .cipclose \ close tcp/ip connection
@@ -567,34 +565,6 @@
    EQUW 1000000 MOD 65535   :EQUB 1000000 DIV 65536
    EQUW 10000000 MOD 65535  :EQUB 10000000 DIV 65536
 
- \ test if buffer empty
- \ on return. zero flag = 0 -> buffer not empty
- \            zero flag = 1 -> buffer empty
-
- \ TODO: how is this managed with paged ram????
-
-\.fetch_buffer_status
-\ lda store_vec
-\ cmp #store_sam%256
-\ beq gbs_sam
-\ lda #0
-\ cmp buffer_ptr
-\ bne gbs_full
-\ lda buffer_start
-\ cmp buffer_ptr+1
-\ bne gbs_full
-\ lda #0
-\ rts
-\.gbs_full
-\ lda #&80
-\ rts
-\.gbs_sam
-\ lda sam_status
-\ eor #&ff
-\ and #&80
-\ rts
-   
-\ The following functions are not needed on the Electron
 .restore_env
 .set_buffer
  stx datalen            \ save end of data
@@ -657,12 +627,13 @@ rts
  inc zp+7               \ increment the msb of the destination pointer
  jmp do_flash1          \ copy the next block
 .do_flash3
- ldx save_x             \ restore bank number to flash
+ lda save_x             \ restore bank number to flash
+ eor uart_type          \ adjust to UART Type (toggles high bit of ROM bank number)
  ldy save_y             \ restore start address of data
  jmp flashcode          \ start flashing
 
 .ping
- lda #8                 \ set time out
+ lda time_out_set       \ set time out
  sta time_out
  jsr send_command
  equs "AT+PING=",&00
@@ -670,4 +641,10 @@ rts
  jsr send_param_quoted
  jsr send_crlf
  jmp read_response
+
+ \ This function sets the time out value; it's introduced in version 0.32
+.set_time_out
+ ldx save_x
+ stx time_out_set
+ rts
  

@@ -57,7 +57,7 @@ nxtblk	=	&B6		\next CFS block number
 blklen	=	&B5		\copy of block length ls byte
 optmask	=	&B7		\mask for *OPT setting (two values)
 
-pr_y    =   &C7     \data pointor to paged ram (Y-reg)
+pr_y    =   &C7     \data pointer to paged ram (Y-reg)
 pr_r    =   &C8     \data pointer to paged ram (page register)
 
 				    \the following locations are re-entrant

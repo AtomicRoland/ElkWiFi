@@ -19,12 +19,12 @@ include "electron.asm"
                     jmp service                 \ Jump to service entry point
                     equb &82                    \ ROM type byte: service rom
                     equb (copyright-romstart)   \ Offset to copyright string
-                    equb &00                    \ version 0.0x
+                    equb &01                    \ version 0.1x
 .romtitle           equs "Electron Wifi"
                     equb 0
-.romversion         equs "0.30"                 \ Rom version string
+.romversion         equs "0.34"                 \ Rom version string
 .copyright          equb 0                      \ Copyright message
-                    equs "(C)2022 Roland Leurs"
+                    equs "(C)2025 Roland Leurs"
                     equb 0
 
 \ Command table
@@ -52,10 +52,10 @@ include "electron.asm"
                     pha                         \ the exit value of A depends on the command.
                     txa
                     pha
-                    ldx #&FF                    \ load index register, one byte before command table
                     cld                         \ clear decimal flag
-.command_x4         ldy #0                      \ reset Y pointer to beginning of command line
-                    jsr skipspace               \ forward Y pointer to first non-space character
+                    ldx #&FF                    \ load index register, one byte before command table
+                    sty save_y
+.command_x4         ldy save_y                  \ reset pointer
                     dey                         \ set pointer to beginning of command
 .command_x2         iny                         \ increment pointer
                     inx                         \ increment index
@@ -64,9 +64,10 @@ include "electron.asm"
                     bmi command_x1              \ jump if negative (i.e. end of command, high byte of start address)
                     cmp (line),y                \ compare with character on command line
                     beq command_x2              \ jump if equal
-                    ora #&20                    \ perhaps it's lower case, convert to lower case
+                    ora #&20                    \ perhaps it's lower case, convert to upper case
                     cmp (line),y                \ compare again
                     beq command_x2              \ jump if equal
+
 \ There was a character read that is not in the current command. Either it is abbreviated or it's
 \ another command. In both cases, increment the X index to the end of the command in the table. X points
 \ to the (possible) start address of the command.
@@ -134,6 +135,8 @@ include "electron.asm"
                     pha                         \ the exit value of A depends on the command.
                     txa
                     pha
+                    lda #4                      \ load default time-out value
+                    sta time_out_set            \ set as default value
                     lda #&D7                    \ Turn off default banner
                     ldx #0
                     stx pagereg                 \ reset page register to 0
@@ -149,6 +152,7 @@ include "electron.asm"
                     jsr osbyte
                     cpx #0                      \ test for soft reset
                     beq autorun_l1
+					jsr SetUTCToZero			\ Set default offset (time zone) for date and time command
                     lda #7                      \ ring the bell on power on and hard reset
                     jsr oswrch
                     cpx #1                      \ was it a power on reset
@@ -184,9 +188,13 @@ include "electron.asm"
                     equs "IFCFG"
                     equb >ifcfg_cmd, <ifcfg_cmd
                     equs "DATE"
-                    equb >date_cmd, <date_cmd
-                    equs "TIME"
-                    equb >time_cmd, <time_cmd
+                    equb >ntptime_cmd, <ntptime_cmd
+					equs "TZ"
+                    equb >utcoff_cmd, <utcoff_cmd
+					equs "TIMEZONE"
+                    equb >utcoff_cmd, <utcoff_cmd
+					equs "TIME"
+                    equb >ntptime_cmd, <ntptime_cmd
                     equs "PRD"
                     equb >pdump_cmd, <pdump_cmd
                     equs "JOIN"
@@ -252,8 +260,9 @@ include "electron.asm"
                     equs " VERSION   Print firmware version",&0D
                     equs " WGET      Get a file from a webserver",&0D
                     equs " WICFS     Enable WiFi CFS",&0D
-                    equs " WIFI      WiFi control ON|OFF|HR|SR",&0D
+                    equs " WIFI      WiFi control ON|OFF|HR|SR|Rn",&0D
                     equs " WMENU     start the menu program",&0D
+					equs " TIMEZONE  Sets the UTC offset with LT",&0D
                     nop
 .print_help_end     rts 
 
@@ -265,6 +274,8 @@ include "electron.asm"
 .osword65           lda &EF                     \ load OSWORD number
                     cmp #&65                    \ compare with &65
                     beq osword65_l1             \ jump if it's my call
+					cmp #&0E
+					beq osword14
                     lda #8                      \ it is not mine, so continu with unmodified A
                     rts
 .osword65_l1        tya                         \ save X and Y registers, we don't save the A because
@@ -282,6 +293,16 @@ include "electron.asm"
                     tay                         \ transfer to Y register
                     pla                         \ restore A (= function number)
                     jsr wifidriver              \ execute the wifi function
+                    stx &F0                     \ store X register in &F0
+                    sty &F1                     \ store Y register in &F1
+                    jmp call_claimed            \ return from OSWORD call
+.osword14		 	tya                         \ save X and Y registers
+                    pha                         
+                    txa
+                    pha
+					ldx &F0                 	\ load the X value
+                    ldy &F1                 	\ load the Y value
+                    jsr ntpdriver               \ execute the wifi function
                     jmp call_claimed            \ return from OSWORD call
 
 include "routines.asm"
@@ -289,7 +310,6 @@ include "errors.asm"
 include "serial.asm"
 include "driver.asm"
 include "version.asm"
-include "time.asm"
 include "lap.asm"
 include "ifcfg.asm"
 include "wificmd.asm"
@@ -303,6 +323,7 @@ include "menu.asm"
 include "ping.asm"
 include "telnet.asm"
 include "printer.asm"
+include "ntp.asm"
 
 equs "This is the end!"
 
@@ -310,8 +331,9 @@ align &100
 .flashsrc
 incbin "flash.bin"
 
-skipto &C000
+skipto &BFFE
+.uart_type      equb    00          ; UART TYPE (0 = ST16C2552, 2 = TL16C2552)
+.default_tz     equb    00          ; Default time zone
 .romend             
 
-SAVE "elkwifi.rom", atmheader, romend
-SAVE "bbcwifi.rom", romstart, romend
+SAVE "elkwifi.rom", romstart, romend

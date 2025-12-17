@@ -11,6 +11,7 @@
 
             pagereg = &FCFF
             pageram = &FD00
+            time_out_set = &FC37    \ Scratch register B
             AP5_disable = &FCD8     \ Writing to this register disables the 74LS245 for paged ram access
 
 			timer = &140            \ Count down timer, 3 bytes
@@ -23,12 +24,23 @@
 
             osrdch = &FFE0
             oswrch = &FFEE
+			osword = &FFF1			\ Added Timo Hartong for NTP
             osasci = &FFE3
             osbyte = &FFF4
             osnewl = &FFE7
             oscli  = &FFF7
             switch = &FE05
             shadow = &F4
+
+			\  Added Timo hartong for NTP
+			\ OS Byte constants
+			ReadFred 	= &92
+			WriteFred 	= &93
+			ReadJim 	= &94
+			WriteJim 	= &95
+			\ OSWord constants
+			ReadSysClock = 1
+			WriteSysClock = 2
 
             uptvec = &222           \ User Print Vector
             netprt = &D90           \ Network printer name or ip (32 char)
@@ -57,7 +69,7 @@
             databits = zp+10
             stopbits = zp+11
 
-			buffer_ptr = zp+9       \ buffer_ptr and data_pointer must be adjescent!
+			buffer_ptr = zp+9       \ buffer_ptr and data_pointer must be adjacent!
 			data_pointer = zp+11    \ a.k.a. data length
             size = zp+11            \ indeed, same as data_pointer
             needle = zp+12          \ may overlap with data_pointer, 2 bytes
@@ -65,14 +77,13 @@
             crc = zp+15             \ calculated crc, 2 bytes
             servercrc = zp+17       \ received crc, 2 bytes
 
+			mux_status  = &8000     \ Mux is disabled from version 0.34                  \ (See issue #8 in GitHub)
+			mux_channel = &AB       \ need 5 bytes!
+
 			read_ptr = zp+15        \ just a few other names, used by the telnet command
 			write_ptr = zp+17
 			telnet_mode = zp+8      \ telnet mode for displaying text (prestel, ansi, raw etc)
             quelen = zp + 7         \ queue length for prestel and ansi escape sequences
 
-			mux_status  = &AA
-			mux_channel = &AB     \ need 5 bytes!
-			
-
-ORG &8000-22         ; it's a sideway ROM service and it containts an ATM header
+		ORG &8000-22         ; it's a sideway ROM service and it containts an ATM header
     
